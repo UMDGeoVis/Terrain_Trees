@@ -16,7 +16,6 @@ CMakeDoxyfile.in
 *.directory
 README
 Makefile
-*.py
 *.cmake
 CMakeCache.txt
 CMakeFiles/
