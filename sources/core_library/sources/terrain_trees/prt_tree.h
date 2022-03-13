@@ -69,8 +69,10 @@ public:
 
 
     void compact_vertices_lists(Node_V &n, Mesh &mesh, ivect &surviving_vertices);
+    void reinsert_triangles();
 
-    void update_tree(Node_V &n, ivect &new_v_positions,ivect &new_t_positions, bool all_deleted, itype index_counter);
+    void update_tree(Node_V &n, ivect &new_v_positions,ivect &new_t_positions, bool all_deleted, itype& index_counter);
+    void update_vertex_index(Node_V &n, ivect &new_v_positions, itype& index_counter);
     void get_leaf_indexing_vertex(Node_V &n, int v_id, Node_V *&res);
 
 
@@ -90,6 +92,18 @@ public:
      * @return unsigned
      */
     inline unsigned get_leaves_number() { return this->leaves.size(); }
+
+    /**
+     * @brief A public method that recursively visits the Terrain tree and unify the tree branches that index less than kv vertices.
+     *
+     * The procedure returns the number of vertices indexed in a tree branch.
+     *
+     * @param n a Node_V& argument representing the current node
+     * @param mesh a Mesh& argument representing the mesh indexed by the Terrain tree
+     * @return int an integer containing the number of vertices indexed in a tree branch
+     */
+    int visit_and_unify(Node_V &n, Mesh &mesh);
+
 private:
     ///A private variable representing the maximum number of vertices admitted for a node
     int vertices_threshold;

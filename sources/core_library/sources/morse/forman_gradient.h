@@ -134,26 +134,27 @@ public:
     /// for debug only
     vector<ushort>& get_gradient() { return forman_gradient; }
 
-    inline void reorder_forman_gradient(Mesh &mesh){
-        vector<ushort> new_forman_gradient;
+    inline void reorder_forman_gradient(Mesh &mesh, ivect& new_t_pos){
+        // vector<ushort> new_forman_gradient;
         // int t=0;
-        for(int t=0;t<mesh.get_triangles_num();t++){
-            if(!mesh.is_triangle_removed( t+1))
+        for(int i=0;i<new_t_pos.size();i++){
+        if(new_t_pos[i]!=-1)
         {
- 
-          //   cout<<"Add a new one"<<endl;
-        //  cout<<"triangle "<<t+1<<" is not removed"<<endl;
-            new_forman_gradient.push_back(forman_gradient[t]);
+            swap(forman_gradient[new_t_pos[i]-1], forman_gradient[i]);
+            // new_forman_gradient.push_back(forman_gradient[t]);
         }
  
         }
+        
+        forman_gradient.resize(mesh.get_triangles_num());
+
         // cout<<"Old number of triangles:"<<forman_gradient.size()<<endl;
-        forman_gradient = new_forman_gradient;
+        // forman_gradient = new_forman_gradient;
         cout<<"Forman gradient updated"<<endl;
         // cout<<"number of triangles:"<<forman_gradient.size()<<endl;
     }
 
-private: /// --- PRIVATE VARIABLES --- ///    
+private: /// --- PRIVATE VARIABLES --- ///        
     vector<ushort> forman_gradient;
     CompressedToExpandedLUT compressed_to_expanded;
     ExpandedToCompressedLUT expanded_to_compressed;

@@ -62,6 +62,12 @@ public:
      * @param son_number an integer containing the sons number
      */
     inline void init_sons(int son_number) { this->sons = new vector<N*>(); this->sons->assign(son_number,NULL); }
+    /**
+     * @brief A public method that clear the son array
+     *
+     */
+    inline void delete_sons() { this->sons->clear(); delete this->sons; this->sons=NULL; }
+
     ///A public method that adds a triangle index to the array
     /*!
      * \param ind an itype argument, representing the triangle index

@@ -58,6 +58,8 @@ public:
     template<class T> void reindex_tree_and_mesh(T& tree, bool save_v_indices, ivect &original_vertex_indices, bool save_t_indices, ivect &original_triangle_indices);
     // for PR-T and PM-T trees
 
+    template<class T> void reindex_triangle_array(T& tree, bool save_t_indices, ivect &original_triangle_indices);
+
 private:
     ///A private vector containing the coherent position indices of vertices/triangles
     ivect coherent_indices;
@@ -201,6 +203,24 @@ template<class T> void Reindexer::reindex_tree_and_mesh(T &tree, bool save_v_ind
     return;
 }
 
+template<class T> void Reindexer::reindex_triangle_array(T &tree, bool save_t_indices, ivect &original_triangle_indices)
+{
+    coherent_indices.assign(tree.get_mesh().get_triangles_num(),-1);
+
+    extract_leaf_tri_association(tree.get_root(),tree.get_mesh(),tree.get_root());
+
+    get_triangles_reordered_indexes(save_t_indices,original_triangle_indices);
+
+    compress_tree_representation_top(tree.get_root());
+
+    update_mesh_triangles(tree.get_mesh());
+
+    reset();
+    return;
+}
+
+
+
 template<class N> void Reindexer::compress_t_array(N& n, ivect &new_t_list)
 {
     sort(new_t_list.begin(),new_t_list.end());
@@ -268,7 +288,6 @@ template<class N>  void Reindexer::extract_leaf_tri_association_leaf(N &n, Mesh 
     /// if there are no vertices in the leaf we have nothing to do..
     if(!n.indexes_vertices())
         return;
-
     ivect internal_t_key; internal_t_key.push_back(n.get_v_start());
 
     for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)

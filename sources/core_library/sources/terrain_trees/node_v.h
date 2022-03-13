@@ -148,14 +148,14 @@ public:
     {
         if(p.is_leaf())
         {
-            if(p.get_v_array_size() == 2) // it should be reindexed //it has been reindexed
+            if(p.is_v_array_run_compressed()) //it has been reindexed
                { out <<"Leaf["<< p.get_v_start() << " " << p.get_v_end()<<"]";
                  out << "Leaf[v->"<< p.get_real_v_array_size() << " t->"<< p.get_real_t_array_size() <<"]";
                }
             else   //should be reindexed
             {
                  
-                  out <<"Leaf["<< p.get_v_start() << " " << p.get_v_end()<<"]";
+                //   out <<"Leaf["<< p.get_v_start() << " " << p.get_v_end()<<"]";
                 out << "Leaf[v->"<< p.get_real_v_array_size() << " t->"<< p.get_real_t_array_size() <<"]";
    
             }
@@ -337,6 +337,14 @@ public:
     }
         return false;
     }
+
+    /**
+     * @brief A public method that check if the vertices list is encoded using the run compression encoding
+     *
+     * @return true if the run compression is used, false otherwise
+     */
+    inline bool is_v_array_run_compressed() const { return (this->vertices.size()==2 && this->vertices[0]<0); }
+
 
 ////ONLY FOR DEBUG, SHOULD REMOVE BEFORE MERGING
 // inline void print_vertices(){

@@ -316,7 +316,6 @@ void Reindexer::get_triangles_reordered_indexes(bool save_original_indices, ivec
         counter += it->second.second;
     }
     leaf_tuples_array.clear();
-
     //we updated the values in coherent_indices setting the new index value for each triangle
     for(utype j=0; j<coherent_indices.size(); j++)
     {

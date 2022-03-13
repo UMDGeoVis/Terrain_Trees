@@ -102,13 +102,9 @@ bool Mesh_Updater::update_and_clean_triangles_array(Mesh &mesh, ivect &new_v_pos
        
         if(!mesh.is_triangle_removed( *it))
         {
-          //   cout<<"Add a new one"<<endl;
             new_triangle_positions[t] = t_counter;
-        //    if(t_counter<20)
-        //    cout<<"Old: "<<t<<", New: "<<t_counter-1<<endl;
             t_counter++;
         }
-       // cout<<"Removed"<<endl;
         t++;
     }
     // (3) reorder (inline) the triangles arrays

@@ -39,7 +39,7 @@ public:
      * NOTA: the size of the new_v_positions and new_top_positions arrays is equal to the size of the original arrays of the mesh, and the
      * entries corresponding to deleted elements are flagged with -1 value.
      *
-     * NOTA2: during the procedure are also updated the boundary relations of the triangles
+     * NOTA2: during the procedure the boundary relations of the triangles are also updated 
      */
      bool update_and_clean_triangles_arrays(Mesh &mesh, ivect &new_v_positions,
                                                                                          ivect &new_triangle_positions, itype simplification_counters);

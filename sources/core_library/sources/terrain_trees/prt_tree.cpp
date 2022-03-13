@@ -19,6 +19,92 @@ void PRT_Tree::build_tree()
     }
 }
 
+void PRT_Tree::reinsert_triangles(){
+    for(itype i=1;i<=this->mesh.get_triangles_num();i++)
+    {
+        this->add_triangle(this->root,this->mesh.get_domain(),0,i);
+        // cout<<"triangle "<<i<<endl;
+        // cout<<mesh.get_triangle(i)<<endl;
+    }
+}
+
+int PRT_Tree::visit_and_unify(Node_V &n, Mesh &mesh){
+//// The unify function can be simpler. We have internal range and we can just delete sons if the internal range is less than the threshold. 
+    int vertex_counter = 0;
+    if(n.is_leaf())
+    { 
+        
+        vertex_counter = n.get_real_v_array_size();//this->count_indexed_vertices(n,mesh);
+        // cout<< "vertex counter (leaf):"<<vertex_counter<<endl;
+    }
+    else
+    {
+        for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it)
+        {
+            if(*it != NULL)
+            {
+                int local_num_v = this->visit_and_unify(**it,mesh);
+                // cout<<**it<<endl;
+                if(local_num_v == 0)
+                {
+                    // auto it = n.get_son(i);
+                    // delete *it;
+                    // *it = NULL;
+                }
+                else
+                    vertex_counter += local_num_v;
+            }
+        }
+
+        
+        if(vertex_counter <= this->vertices_threshold)
+        {
+            // iset internal_triangles;
+            // internal_triangles.assign(mesh.get_top_cells_types(),iset());
+            pair<iset_iter,bool> coppia;
+
+            n.clear_v_array(); // we have to reset the vertices lists as it contains the internal range of vertices
+          
+            for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it)
+            {
+                if(*it != NULL)
+                {
+                    // we reinsert the vertices
+                    Node_V &son = **it;
+                    for(RunIteratorPair itPair = son.make_v_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+                    {
+                        RunIterator const& v_id = itPair.first;
+                        //if(!mesh.is_vertex_removed(*v_id))
+                        n.add_vertex(*v_id);
+                    }
+
+
+
+                    // for(RunIteratorPair itPair = son.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+                    // {
+                    //     RunIterator const& t_id = itPair.first;
+                    //     if(!mesh.is_triangle_removed(*t_id))
+                    //     {
+                    //         coppia = internal_triangles.insert(*t_id);
+                    //         if(coppia.second == true)
+                    //         {
+                    //             n.add_triangle(*t_id);
+                    //         }
+                    //     }
+                    // }
+                    
+                }
+            }
+
+            
+        }
+    }
+
+    return vertex_counter;
+
+}
+
+
 void PRT_Tree::add_vertex(Node_V& n, Box& domain, int level, itype v)
 {
     if (n.is_leaf())
@@ -226,13 +312,14 @@ void PRT_Tree::compact_vertices_lists(Node_V &n, Mesh &mesh, ivect &surviving_ve
 }
 
 
-void PRT_Tree::update_tree(Node_V &n, ivect &new_v_positions, ivect &new_t_positions, bool all_deleted, itype index_counter)
+void PRT_Tree::update_tree(Node_V &n, ivect &new_v_positions, ivect &new_t_positions, bool all_deleted, itype& index_counter)
 {
     if (n.is_leaf())
     {
         n.update_vertex_indices(new_v_positions, index_counter);
-        if(new_t_positions.size()!=0) // if not all the top simplices have been removed
-            n.update_and_compress_triangles_arrays(new_t_positions,all_deleted);
+        n.clear_t_array();
+        // if(new_t_positions.size()!=0) // if not all the top simplices have been removed
+        //     n.update_and_compress_triangles_arrays(new_t_positions,all_deleted);
     }
     else
     {
@@ -243,10 +330,36 @@ void PRT_Tree::update_tree(Node_V &n, ivect &new_v_positions, ivect &new_t_posit
                 this->update_tree(**it,new_v_positions,new_t_positions,all_deleted,index_counter);
         }
         itype end = index_counter;
+        n.clear_v_array();
         n.set_v_range(start,end);
     }
 }
 
+void PRT_Tree::update_vertex_index(Node_V &n, ivect &new_v_positions, itype& index_counter)
+{
+    if (n.is_leaf())
+    {
+        n.update_vertex_indices(new_v_positions, index_counter);
+        n.clear_t_array();
+        // if(new_t_positions.size()!=0) // if not all the top simplices have been removed
+        //     n.update_and_compress_triangles_arrays(new_t_positions,all_deleted);
+    }
+    else
+    {
+        itype start = index_counter;
+        for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it)
+        {
+            if(*it != NULL)
+                this->update_vertex_index(**it,new_v_positions,index_counter);
+        }
+        itype end = index_counter;
+        if((end-start)<= this->vertices_threshold){
+            n.delete_sons();
+        }
+        n.clear_v_array();
+        n.set_v_range(start,end);
+    }
+}
 
 
 

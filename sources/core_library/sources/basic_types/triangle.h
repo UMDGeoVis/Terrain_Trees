@@ -145,9 +145,9 @@ public:
     inline bool is_border_edge(int pos) { return (this->vertices[pos] < 0); }
 
     /// Smaller-index vertex getter
-    inline itype minindex() const { return min(min(vertices[0],vertices[1]),vertices[2]); }
+    inline itype minindex() const { return min(min(abs(vertices[0]),abs(vertices[1])),abs(vertices[2])); }
     /// Bigger-index vertex getter
-    inline itype maxindex() const { return max(max(vertices[0],vertices[1]),vertices[2]); }
+    inline itype maxindex() const { return max(max(abs(vertices[0]),abs(vertices[1])),abs(vertices[2])); }
 
     inline bool is_removed() {return this->vertices[0]==0;}
     /**

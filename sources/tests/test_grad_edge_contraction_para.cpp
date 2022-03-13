@@ -27,9 +27,9 @@ int main(int argc, char** argv)
     }
     
     cli.maximum_limit=atof(argv[4]);
-cout<<"Number of available threads:"<<omp_get_max_threads()<<endl;
-     if(atoi(argv[5])==-1){
-   cli.num_of_threads = omp_get_max_threads();
+    cout<<"Number of available threads:"<<omp_get_max_threads()<<endl;
+    if(atoi(argv[5])==-1){
+      cli.num_of_threads = omp_get_max_threads();
     }
      else{
     cli.num_of_threads =atoi(argv[5]);
@@ -47,7 +47,8 @@ cout<<"Number of available threads:"<<omp_get_max_threads()<<endl;
     else
       cli.QEM_based=false;
     //load_tree(ptree,cli);
-   gradient_aware_simplification(ptree,cli);
+    gradient_aware_simplification(ptree,cli);
+
     return (EXIT_SUCCESS);
 }
 
@@ -154,8 +155,8 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     
 
     load_terrain(tree,cli);
-    
-    //CALCOLO IL FORMAN GRADIENT VECTOR
+
+    //CALCULATE FORMAN GRADIENT VECTOR
     Forman_Gradient forman_gradient = Forman_Gradient(tree.get_mesh().get_triangles_num());
     Forman_Gradient_Computation* gradient_computation = new Forman_Gradient_Computation();
 
@@ -167,6 +168,9 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.print_elapsed_time("[TIME] Initial filtering ");
 
     load_tree_lite(tree,cli);
+    Statistics stats_orig;
+    cli.reindex = true;
+    stats_orig.get_index_statistics(tree,cli.reindex);
     Writer::write_mesh_VTK("orig",tree.get_mesh());     
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
     gradient_computation->reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
@@ -223,9 +227,23 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.stop();
     }
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
+    Statistics stats;
+    cli.reindex = true;
+    stats.get_index_statistics(tree,cli.reindex);
 
 
-
+    // cli.original_vertex_indices.assign(tree.get_mesh().get_vertices_num(),-1);
+    cli.original_triangle_indices.assign(tree.get_mesh().get_triangles_num(),-1);
+    cerr<<"[TREE] reindexing after the simplification"<<endl;
+    time.start();
+    Reindexer reindexer = Reindexer();
+    // reindexer.reindex_tree_and_mesh(tree,true,cli.original_vertex_indices,
+    //                                     false,cli.original_triangle_indices);
+    reindexer.reindex_triangle_array(tree, false, cli.original_triangle_indices);
+    time.stop();
+    time.print_elapsed_time("[TIME] Time for reindexing after simplification");
+    Statistics stats_new;
+    stats_new.get_index_statistics(tree,cli.reindex);
     //// A brutal-force method for checking critical simplices after the simplification. 
     //// Should be disabled in experiments
    // count_critical_simplices(tree,cli,forman_gradient);

@@ -215,7 +215,9 @@ void Node_V::get_ET(leaf_ET &ets,  Mesh &mesh)
 
 void Node_V::update_vertex_indices(ivect &new_v_indices, itype &index_counter){
 
-        ivect new_v_list;
+    ivect new_v_list;
+    // itype start = index_counter;
+
     for(RunIteratorPair itPair = make_v_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const& v_id = itPair.first;
@@ -227,11 +229,12 @@ void Node_V::update_vertex_indices(ivect &new_v_indices, itype &index_counter){
             }
     }
     this->clear_v_array();
+    // itype end = index_counter;
 
     if(new_v_list.size()>0){    
-    // this->add_vertex(*i)
-        this->set_v_range(*new_v_list.begin(),*(new_v_list.end()-1)+1);    
-   // cout<<*new_v_list.begin()<<", "<<*(new_v_list.end()-1)+1<<endl;
+        
+    this->set_v_range(*new_v_list.begin(),*(new_v_list.end()-1)+1);    
+    // cout<<start<<", "<<end<<endl;
     }
 
     // for(ivect_iter i=new_v_list.begin();i!=new_v_list.end();i++){

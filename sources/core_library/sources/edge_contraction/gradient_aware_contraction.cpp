@@ -1210,7 +1210,7 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
 
 void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params, Forman_Gradient &gradient)
 {
-    // Timer time;
+     Timer time;
 
     ///  UPDATE OF MESH AND TREE
     ivect new_v_positions;
@@ -1233,45 +1233,43 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     Mesh_Updater mu;
     cout << "number of surviving vertices:" << surviving_vertices.size() << endl;
     mu.clean_vertices_array(mesh, new_v_positions, surviving_vertices);
-    //cout << "number of deleted triangles:" << params.get_counter() << endl;
+ 
 
-    gradient.reorder_forman_gradient(mesh);
+
     // if(params.is_QEM()){
     //     update_QEM(surviving_vertices,mesh);
     // }
 
     /// NEW: the update_and_compact procedure check internally if we have removed all the top d-simplices
     bool all_deleted = mu.update_and_clean_triangles_arrays(mesh, new_v_positions, new_t_positions, params.get_counter());
+
+    gradient.reorder_forman_gradient(mesh, new_t_positions);
+
     // time.stop();
     // time.print_elapsed_time("[TIME] Compact and update mesh: ");
     // cerr << "[MEMORY] peak for compacting and updating the mesh: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
-    // cerr<<"[STAT] mesh "<<endl;
-    // cerr<<"------------"<<endl;
-    // mesh.print_mesh_stats(cerr);
+
     // cerr<<"------------"<<endl;
 
-    // time.start();
+     
     //    cerr<<"[TREE] update indices in the tree"<<endl;
     ///TODO: Check triangle intersection before updating the tree.
-
-    tree.update_tree(tree.get_root(), new_v_positions, new_t_positions, all_deleted, 1);
-    // time.stop();
-    // time.print_elapsed_time("[TIME] Update tree (top-simplices): ");
+    int index_counter = 1;
+    time.start();
+    cerr<<"[TREE] Update vertex index and remove unnecessary splitting"<<endl;
+    tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
+    // below step has been merged to the
+    // tree.visit_and_unify(tree.get_root(),tree.get_mesh());
+    time.stop();
+    time.print_elapsed_time("[TIME] Update tree structure (merging blocks): ");
+    time.start();
+    tree.reinsert_triangles();
+    time.stop();
+    time.print_elapsed_time("[TIME] Update tree (triangles): ");
     // cerr << "[MEMORY] peak for updating the tree (top-simplices): " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
-    //    Reindexer r;
-    //    r.reorganize_index_and_mesh(tree,mesh,false);
-    // for(int i = 0; i<tree.get_leaves_number();i++)
-    // {
-    //     Node_V * l = tree.get_leaf(i);
-    //     cout<<"Leaf "<<i<<endl;
-    //     cout<<*l<<endl;
-    //     for(auto it = l->v_array_begin_iterator();it!=l->v_array_end_iterator();it++)
-    //     cout<<*it<<", ";
-    //     cout<<endl;
 
-    // }
 
     //cerr << "[RAM peak] for updating the mesh and the tree: " << to_string(MemoryUsage().getValue_in_MB(false)) << " Mbs" << std::endl;
 }
