@@ -146,7 +146,8 @@ protected:
     vector<Matrix> initialQuadric;
     vector<dvect> trianglePlane;
 
-    
+    vector<coord_type> contracted_costs;
+    vector<coord_type> skipped_costs;
 
     vector<omp_lock_t> t_locks;
     vector<omp_lock_t> v_locks;

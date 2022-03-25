@@ -216,6 +216,11 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     // vector<int>().swap(v_in_leaf);
     // lists_leafs().swap(conflict_leafs);
     // l_locks.clear();
+    cout<<"size of total contracted costs:"<<contracted_costs.size()<<endl;
+    cout<<"size of total skipped edge costs:"<<skipped_costs.size()<<endl;
+
+
+
 
     if (!cli.debug_mode)
         time.print_elapsed_time("[TIME] Edge contraction simplification: ");
@@ -348,7 +353,8 @@ void Gradient_Aware_Simplifier::simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<i
 
     if (!n.indexes_vertices())
         return;
-
+    vector<coord_type> leaf_contract_costs; 
+    vector<coord_type> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -361,7 +367,7 @@ void Gradient_Aware_Simplifier::simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<i
     // local_VTstar_ET all_rels;
     // Forman_Gradient_Topological_Relations::get_VTstar_ET(all_rels,n,mesh,gradient);
 
-    // Create a priority quue of candidate edges
+    // Create a priority queue of candidate edges
     edge_queue edges;
     find_candidate_edges(n, mesh, local_vts, edges, params);
     map<vector<int>, double> updated_edges;
@@ -395,14 +401,30 @@ void Gradient_Aware_Simplifier::simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<i
 
         get_edge_relations(e, et, vt0, vt1, v1_is_border, v2_is_border, outer_v_block, n, mesh, local_vts, is_v_border, cache, params, tree);
 
-        if (link_condition(e[0], e[1], *vt0, *vt1, et, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) && valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh))
+        if (link_condition(e[0], e[1], *vt0, *vt1, et, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
         {
-            contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, cache, params, gradient, updated_edges);
-            edges_contracted_leaf++;
+            if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
+                contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, cache, params, gradient, updated_edges);
+                edges_contracted_leaf++;
+                leaf_contract_costs.push_back(current->val);
+            }
+            else{
+                leaf_skipped_costs.push_back(current->val);
+            }
+
             // break;
         }
         delete current;
     }
+
+    #pragma omp critical
+    {
+        skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
+                      std::make_move_iterator(leaf_skipped_costs.end()));
+        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                      std::make_move_iterator(leaf_contract_costs.end()));
+    }
+
 }
 
 void Gradient_Aware_Simplifier::contract_edge(ivect &e, ET &et, VT &vt0, VT &vt1, Node_V &outer_v_block, edge_queue &edges,
@@ -508,25 +530,6 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
     new_e.assign(2, 0);
     //set<ivect> v2_edges;
 
-    // if(debug){
-    //     cout<<"[DEBUG]vt1 v1:"<<v1<<endl;
-    //     for(auto it=vt1.begin();it!=vt1.end();it++){
-    //         Triangle t=mesh.get_triangle(*it);
-    //         cout<<*it<<endl;
-    //         cout<<t<<endl;
-
-    //     }
-    //     cout<<endl;
-
-    //     cout<<"[DEBUG]vt2 v2:"<<v2<<endl;
-    //     for(auto it=vt2.begin();it!=vt2.end();it++){
-    //          Triangle t=mesh.get_triangle(*it);
-    //          cout<<*it<<endl;
-    //         cout<<t<<endl;
-
-    //     }
-    //     cout<<endl;
-    // }
 
     short v3_sin_pair_id;
     for (int i = 0; i < 3; i++)
@@ -689,8 +692,7 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
         //omp_unset_lock(&(t_locks[vt1[i]- 1]));
     }
 
-    //  omp_set_lock(&(t_locks[t3_adj_sin - 1]));
-    //  omp_set_lock(&(t_locks[t3_adj_des - 1]));
+
     if (edge1_critical || edge2_critical)
     {
         //  if(debug)
@@ -963,7 +965,6 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                         continue;
                     }
 
-                    //  cout<<"Node "<<i<<" will be processed."<<endl;
                     // omp_set_lock(&(l_locks[i]));
                     // // set nodes_status[i]=2 when node is being processed
                     // nodes_status[i] = 2;
@@ -1123,7 +1124,8 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
 
     if (!n.indexes_vertices())
         return;
-
+    vector<coord_type> leaf_contract_costs; 
+    vector<coord_type> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -1182,20 +1184,29 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
         Contraction_Simplifier::get_edge_relations(e, et, vt0, vt1, v1_is_border, v2_is_border, outer_v_block, n, mesh, local_vts, is_v_border, local_cache, params, tree);
 
         VV vv_locks;
-        if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) && valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh))
+        if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
         {
-            contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
-            edges_contracted_leaf++;
-            // break;
-            n_id = v_in_leaf[e[0]];
-            // A new step for cross edge case
-            // Check possible new conflict nodes by checking the vv_locks
-            // vv_locks stores all the vertices in the VV(v0) & VV(v1) that are not contained by n or outer_v_block
-            if (params.is_parallel())
-            {
-                update_conflict_nodes(vv_locks, n_id, tree);
+            if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
+                contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
+                edges_contracted_leaf++;
+                // break;
+                n_id = v_in_leaf[e[0]];
+
+                // A new step for cross edge case
+                // Check possible new conflict nodes by checking the vv_locks
+                // vv_locks stores all the vertices in the VV(v0) & VV(v1) that are not contained by n or outer_v_block
+                if (params.is_parallel())
+                {
+                    update_conflict_nodes(vv_locks, n_id, tree);
+                }
+                leaf_contract_costs.push_back(current->val);
             }
+            else{
+                leaf_skipped_costs.push_back(current->val);
+            }
+
         }
+        
         // for (iset_iter it = vv_locks.begin(); it != vv_locks.end(); it++)
         // {
         //     omp_unset_lock(&(v_locks[*it - 1]));
@@ -1204,6 +1215,14 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
         // delete vt0,vt1,outer_v_block;
     }
 
+
+    #pragma omp critical
+    {
+        skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
+                      std::make_move_iterator(leaf_skipped_costs.end()));
+        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                      std::make_move_iterator(leaf_contract_costs.end()));
+    }
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }
