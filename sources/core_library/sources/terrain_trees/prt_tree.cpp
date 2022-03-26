@@ -407,3 +407,37 @@ void PRT_Tree::init_leaves_list(Node_V &n)
 
 
 }
+
+void PRT_Tree::init_leaves_list_with_divisions(Node_V &n,  Box &n_dom, int level, Spatial_Subdivision &division, vector<Box>& leaf_divisions){
+    if(!n.is_leaf())
+    {
+        int i = 0;
+        for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it, ++i)
+        {
+            Box son_dom = division.compute_domain(n_dom,level,i);
+            int son_level = level +1;
+            if(*it != NULL)
+            {
+                if((*it)->is_leaf())
+                {
+                    this->leaves.push_back(*it);
+                    leaf_divisions.push_back(son_dom);
+
+                }
+                else
+                {
+                    this->init_leaves_list_with_divisions(**it,son_dom,son_level,division,leaf_divisions);
+                }
+            }
+        }
+    }
+    else{
+        this->leaves.push_back(&n);
+        leaf_divisions.push_back(n_dom);
+
+    }
+
+
+}
+
+

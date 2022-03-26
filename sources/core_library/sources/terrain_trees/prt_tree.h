@@ -75,8 +75,10 @@ public:
     void update_vertex_index(Node_V &n, ivect &new_v_positions, itype& index_counter);
     void get_leaf_indexing_vertex(Node_V &n, int v_id, Node_V *&res);
 
-
+    inline void clear_leaves_list(){ this->leaves.clear();};
     void init_leaves_list(Node_V &n);
+    void init_leaves_list_with_divisions(Node_V &n,  Box &n_dom, int level, Spatial_Subdivision &division, vector<Box>& leaf_divisions);
+
         /**
      * @brief A public method that returns the leaf block at i-th position in the leaves array
      *

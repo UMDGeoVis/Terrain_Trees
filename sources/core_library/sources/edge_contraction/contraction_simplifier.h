@@ -24,6 +24,7 @@ public:
     //Generate conflict leaf list and vertex in leaf list
     void preprocess(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli);
     void error_range(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli, itype num_bin);
+    void check_delaunay(PRT_Tree &tree, Mesh &mesh);
     
 protected:
     
@@ -143,6 +144,9 @@ protected:
 
     void generate_v_in_leaf(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli);
 
+    void check_delaunay_leaf(vector<bool>& tri_delaunay, Node_V &n, Mesh &mesh,  PRT_Tree &tree);
+
+    void check_delaunay_triangle(bool& is_delaunay, Point& center, coord_type radius, Node_V &n, Mesh &mesh,  Box &n_dom, int level, Spatial_Subdivision &division);
     vector<Matrix> initialQuadric;
     vector<dvect> trianglePlane;
 

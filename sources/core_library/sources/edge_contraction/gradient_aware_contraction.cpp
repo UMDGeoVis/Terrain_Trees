@@ -237,6 +237,15 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     time.print_elapsed_time("[TIME] Mesh and tree updating: ");
 
     cerr << "[MEMORY] peak for mesh and tree updating: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+    
+    tree.clear_leaves_list();
+    tree.init_leaves_list(tree.get_root());
+
+    time.start();
+    check_delaunay(tree,mesh);
+    time.stop();
+    time.print_elapsed_time("[TIME] Check Delaunay property: ");
+
 }
 
 void Gradient_Aware_Simplifier::simplify_compute(Node_V &n, Mesh &mesh, LRU_Cache<int, leaf_VT> &cache, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree, Forman_Gradient &gradient)
@@ -1277,11 +1286,14 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     int index_counter = 1;
     time.start();
     cerr<<"[TREE] Update vertex index and remove unnecessary splitting"<<endl;
+    
     tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
+
     // below step has been merged to the
     // tree.visit_and_unify(tree.get_root(),tree.get_mesh());
     time.stop();
     time.print_elapsed_time("[TIME] Update tree structure (merging blocks): ");
+
     time.start();
     tree.reinsert_triangles();
     time.stop();

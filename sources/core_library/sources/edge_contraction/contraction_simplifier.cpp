@@ -2715,3 +2715,107 @@ void Contraction_Simplifier::QEM_leaf(Node_V &n, Mesh &mesh, PRT_Tree &tree){
         }
 
 }
+
+
+void Contraction_Simplifier::check_delaunay(PRT_Tree &tree, Mesh &mesh){
+
+    
+    
+
+    vector<bool> tri_delaunay(mesh.get_triangles_num(),true);
+    int t_num = mesh.get_triangles_num();
+    cout<<"number of triangles: "<<t_num<<endl;
+    #pragma omp parallel for
+        for (unsigned i = 0; i < tree.get_leaves_number(); i++)
+        {
+            Node_V *leaf = tree.get_leaf(i);
+            check_delaunay_leaf(tri_delaunay,*leaf, mesh, tree);
+
+        }
+    int count_invalid = 0;
+    for(int j=0; j<tri_delaunay.size();j++){
+
+        if(tri_delaunay[j]==false)
+          count_invalid++;
+    }
+    cout<<"Invalid triangle num: "<<count_invalid<<endl;
+    cout<<"Invalid percentage: "<<100*count_invalid/t_num<<"%"<<endl;
+
+
+}
+
+void Contraction_Simplifier::check_delaunay_leaf(vector<bool>& tri_delaunay, Node_V &n, Mesh &mesh,  PRT_Tree &tree){
+    if (!n.indexes_vertices())
+        return;
+
+    itype v_start = n.get_v_start();
+    itype v_end = n.get_v_end();
+    itype v_range = v_end - v_start;
+
+
+   for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+    {
+        RunIterator const& t_id = itPair.first;
+        Triangle& tri = mesh.get_triangle(*t_id);
+        if(n.indexes_vertex(tri.minindex())){
+            Vertex v0=mesh.get_vertex(tri.TV(0));
+            Vertex v1=mesh.get_vertex(tri.TV(1));
+            Vertex v2=mesh.get_vertex(tri.TV(2));
+            coord_type x_circle;
+            coord_type y_circle;
+            
+            double A = v1.get_x() - v0.get_x();
+            double B = v1.get_y() - v0.get_y();
+            double C =v2.get_x()- v0.get_x();
+            double D = v2.get_y() - v0.get_y();
+            double E= A*(v0.get_x()+v1.get_x())+B*(v0.get_y()+v1.get_y());
+            double F= C*(v0.get_x()+v2.get_x())+D*(v0.get_y()+v2.get_y());
+            double G=2.0*((A*(v2.get_y()-v1.get_y()))-(B*(v2.get_x()-v1.get_x())));
+            x_circle = ( (D*E) - (B*F) ) / G;
+            y_circle = ( (A*F) - (C*E) ) / G;
+    
+            coord_type radius=sqrt((v0.get_x()-x_circle)*(v0.get_x()-x_circle)+(v0.get_y()-y_circle)*(v0.get_y()-y_circle));
+            Point center(x_circle, y_circle);
+            bool is_delaunay = true;
+            check_delaunay_triangle(is_delaunay,center,radius,tree.get_root(),mesh,tree.get_mesh().get_domain(),0,tree.get_subdivision());
+            if(!is_delaunay)
+                tri_delaunay[*t_id-1] = false;
+
+        }
+
+    }
+
+
+}
+
+void Contraction_Simplifier::check_delaunay_triangle(bool& is_delaunay, Point& center, coord_type radius, Node_V &n, Mesh &mesh, Box &n_dom, int level, Spatial_Subdivision &division){
+   
+    Point max(center.get_x()+radius, center.get_y()+radius);
+    Point min(center.get_x()-radius, center.get_y()-radius);
+    Box bounding_box(min,max);
+    if(!n_dom.intersects(bounding_box)||is_delaunay==false)
+        return;
+    
+    if (n.is_leaf())
+    {
+           if(Geometry_Wrapper::point_in_circle_range(center, radius,n.get_v_start(),n.get_v_end(),mesh)){
+                is_delaunay = false;
+                return;
+           }
+                
+    }
+    else
+    {
+
+        for (int i = 0; i < division.son_number(); i++)
+        {
+            Box son_dom = division.compute_domain(n_dom,level,i);
+            int son_level = level +1;
+            if (n.get_son(i) != NULL)
+            {
+             check_delaunay_triangle(is_delaunay, center,radius,*n.get_son(i),mesh,son_dom,son_level,division);
+            }
+        }
+    }
+
+}

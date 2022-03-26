@@ -124,3 +124,132 @@ bool Geometry_Wrapper::same_side_of_edge(int v1,int v2, int e1, int e2, Mesh&mes
      }
 
 }
+
+bool Geometry_Wrapper::point_in_circle(int t_id, int v_id, Mesh& mesh){
+
+    Triangle tri = mesh.get_triangle(t_id); 
+    Vertex v0=mesh.get_vertex(tri.TV(0));
+    Vertex v1=mesh.get_vertex(tri.TV(1));
+    Vertex v2=mesh.get_vertex(tri.TV(2));
+    coord_type x_circle;
+    coord_type y_circle;
+    
+   double A = v1.get_x() - v0.get_x();
+   double B = v1.get_y() - v0.get_y();
+   double C =v2.get_x()- v0.get_x();
+   double D = v2.get_y() - v0.get_y();
+   
+   double E= A*(v0.get_x()+v1.get_x())+B*(v0.get_y()+v1.get_y());
+   double F= C*(v0.get_x()+v2.get_x())+D*(v0.get_y()+v2.get_y());
+   double G=2.0*((A*(v2.get_y()-v1.get_y()))-(B*(v2.get_x()-v1.get_x())));
+   x_circle = ( (D*E) - (B*F) ) / G;
+   y_circle = ( (A*F) - (C*E) ) / G;
+    
+   coord_type radius=sqrt((v0.get_x()-x_circle)*(v0.get_x()-x_circle)+(v0.get_y()-y_circle)*(v0.get_y()-y_circle));
+   
+    Vertex v = mesh.get_vertex(v_id);
+
+   coord_type dist=sqrt((v.get_x()-x_circle)*(v.get_x()-x_circle)+(v.get_y()-y_circle)*(v.get_y()-y_circle));
+   double EQ_TOLL=1E-8;
+   if (dist>radius+EQ_TOLL)
+       return false;
+   else //if(dist<radius)
+       return true;  //ignore the situation of four points on the same circle
+//   else 
+//       cout<<"four points are on the same circle"<<endl;
+   
+
+}
+
+
+bool Geometry_Wrapper::point_in_circle_all(int t_id, Mesh& mesh){
+    return point_in_circle_range(t_id, 1, mesh.get_vertices_num(),mesh);
+}
+
+bool Geometry_Wrapper::point_in_circle_range(int t_id, int v_start, int v_end, Mesh& mesh){
+
+    Triangle tri = mesh.get_triangle(t_id); 
+    Vertex v0=mesh.get_vertex(tri.TV(0));
+    Vertex v1=mesh.get_vertex(tri.TV(1));
+    Vertex v2=mesh.get_vertex(tri.TV(2));
+    coord_type x_circle;
+    coord_type y_circle;
+    
+   double A = v1.get_x() - v0.get_x();
+   double B = v1.get_y() - v0.get_y();
+   double C =v2.get_x()- v0.get_x();
+   double D = v2.get_y() - v0.get_y();
+   
+   double E= A*(v0.get_x()+v1.get_x())+B*(v0.get_y()+v1.get_y());
+   double F= C*(v0.get_x()+v2.get_x())+D*(v0.get_y()+v2.get_y());
+   double G=2.0*((A*(v2.get_y()-v1.get_y()))-(B*(v2.get_x()-v1.get_x())));
+   x_circle = ( (D*E) - (B*F) ) / G;
+   y_circle = ( (A*F) - (C*E) ) / G;
+    
+   coord_type radius=sqrt((v0.get_x()-x_circle)*(v0.get_x()-x_circle)+(v0.get_y()-y_circle)*(v0.get_y()-y_circle));
+   
+    for(int v_id = v_start; v_id < v_end; v_id++){
+        Vertex v = mesh.get_vertex(v_id);
+        coord_type dist=sqrt((v.get_x()-x_circle)*(v.get_x()-x_circle)+(v.get_y()-y_circle)*(v.get_y()-y_circle));
+        double EQ_TOLL=1E-8;
+        if (dist+EQ_TOLL<radius)
+            return true;
+
+    }
+    return false;
+
+
+}
+
+
+bool Geometry_Wrapper::point_in_circle_range(Point& center, coord_type radius, int v_start, int v_end, Mesh& mesh){
+
+ 
+    coord_type x_circle = center.get_x();
+    coord_type y_circle = center.get_y();
+    
+
+    for(int v_id = v_start; v_id < v_end; v_id++){
+        Vertex v = mesh.get_vertex(v_id);
+        coord_type dist=sqrt((v.get_x()-x_circle)*(v.get_x()-x_circle)+(v.get_y()-y_circle)*(v.get_y()-y_circle));
+        double EQ_TOLL=1E-8;
+        if (dist+EQ_TOLL<radius)
+            return true;
+
+    }
+    return false;
+
+
+}
+
+
+
+// bool Geometry_Wrapper::box_circumcircle_disjoint(int t_id, Box& box, Mesh& mesh){
+
+//     Triangle tri = mesh.get_triangle(t_id); 
+//     Vertex v0=mesh.get_vertex(tri.TV(0));
+//     Vertex v1=mesh.get_vertex(tri.TV(1));
+//     Vertex v2=mesh.get_vertex(tri.TV(2));
+//     coord_type x_circle;
+//     coord_type y_circle;
+    
+//    double A = v1.get_x() - v0.get_x();
+//    double B = v1.get_y() - v0.get_y();
+//    double C =v2.get_x()- v0.get_x();
+//    double D = v2.get_y() - v0.get_y();
+   
+//    double E= A*(v0.get_x()+v1.get_x())+B*(v0.get_y()+v1.get_y());
+//    double F= C*(v0.get_x()+v2.get_x())+D*(v0.get_y()+v2.get_y());
+//    double G=2.0*((A*(v2.get_y()-v1.get_y()))-(B*(v2.get_x()-v1.get_x())));
+//    x_circle = ( (D*E) - (B*F) ) / G;
+//    y_circle = ( (A*F) - (C*E) ) / G;
+    
+//    coord_type radius=sqrt((v0.get_x()-x_circle)*(v0.get_x()-x_circle)+(v0.get_y()-y_circle)*(v0.get_y()-y_circle));
+   
+//     Point max(x_circle+radius, y_circle+radius);
+
+//     Point min(x_circle-radius, y_circle-radius);
+//     Box bounding_box(min,max);
+//     return !box.intersects(bounding_box);
+
+// }

@@ -72,7 +72,13 @@ public:
      * @return true if exists a real intersection between t_id and box, false otherwise
      */
     static bool triangle_in_box(int t_id, Box& box, Mesh& mesh);
-    static bool same_side_of_edge(int v1,int v2, int e1, int e2, Mesh&mesh);
+    static bool same_side_of_edge(int v1,int v2, int e1, int e2, Mesh& mesh);
+    static bool point_in_circle(int t_id, int v_id, Mesh& mesh);
+    static bool point_in_circle_range(int t_id, int v_start, int v_end, Mesh& mesh);
+    static bool point_in_circle_all(int t_id,  Mesh& mesh);
+
+    static bool point_in_circle_range(Point& center, coord_type radius, int v_start, int v_end, Mesh& mesh);
+
 };
 
 #endif // GEOMETRY_WRAPPER_H
