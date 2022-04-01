@@ -25,6 +25,7 @@ public:
     void preprocess(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli);
     void error_range(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli, itype num_bin);
     void check_delaunay(PRT_Tree &tree, Mesh &mesh);
+    void compute_compactness(PRT_Tree &tree, Mesh &mesh);
     
 protected:
     

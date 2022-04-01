@@ -78,6 +78,7 @@ public:
     static bool point_in_circle_all(int t_id,  Mesh& mesh);
 
     static bool point_in_circle_range(Point& center, coord_type radius, int v_start, int v_end, Mesh& mesh);
+    static double triangle_compactness(int t_id, Mesh& mesh);
 
 };
 

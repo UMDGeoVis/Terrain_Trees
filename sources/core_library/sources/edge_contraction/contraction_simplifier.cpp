@@ -2719,8 +2719,6 @@ void Contraction_Simplifier::QEM_leaf(Node_V &n, Mesh &mesh, PRT_Tree &tree){
 
 void Contraction_Simplifier::check_delaunay(PRT_Tree &tree, Mesh &mesh){
 
-    
-    
 
     vector<bool> tri_delaunay(mesh.get_triangles_num(),true);
     int t_num = mesh.get_triangles_num();
@@ -2818,4 +2816,40 @@ void Contraction_Simplifier::check_delaunay_triangle(bool& is_delaunay, Point& c
         }
     }
 
+}
+
+void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh){
+
+    dvect meshCompactness(mesh.get_triangles_num(), 0);
+    #pragma omp parallel for
+    for (unsigned i = 0; i < tree.get_leaves_number(); i++)
+    {
+            Node_V *leaf = tree.get_leaf(i);
+
+            if (!leaf->indexes_vertices())
+                continue;
+
+
+        for(RunIteratorPair itPair = leaf->make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+            {
+                RunIterator const& t_id = itPair.first;
+                Triangle& tri = mesh.get_triangle(*t_id);
+                if(leaf->indexes_vertex(tri.minindex())){
+                    meshCompactness[*t_id-1] = Geometry_Wrapper::triangle_compactness(*t_id,mesh);
+
+                }
+
+            }
+        }
+
+    coord_type max=-1, min = 1.1, avg=0;
+    for(int i=0; i < meshCompactness.size(); i++){
+        max = std::max(meshCompactness[i],max);
+        min = std::min(meshCompactness[i],min);
+        avg += meshCompactness[i];
+    }
+
+    avg = avg/meshCompactness.size();
+    cout<<"Triangle compactness: Max: "<<max<<", Min: "<<min<<", Avg: "<<avg<<endl;
+    //TODO: write the vector to file
 }

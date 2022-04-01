@@ -253,3 +253,48 @@ bool Geometry_Wrapper::point_in_circle_range(Point& center, coord_type radius, i
 //     return !box.intersects(bounding_box);
 
 // }
+
+double Geometry_Wrapper::triangle_compactness(int t_id, Mesh& mesh){
+
+    Triangle& t = mesh.get_triangle(t_id);
+
+    coord_type area = 0;
+
+    Vertex &v1 = mesh.get_vertex(t.TV(0));
+    Vertex &v2 = mesh.get_vertex(t.TV(1));
+    Vertex &v3 = mesh.get_vertex(t.TV(2));
+
+    dvect e1 = {v1.get_x()-v2.get_x(),v1.get_y()-v2.get_y(),v1.get_z()-v2.get_z()};
+    dvect e2 = {v3.get_x()-v2.get_x(),v3.get_y()-v2.get_y(),v3.get_z()-v2.get_z()};
+
+    area = (e1[1]*e2[2]-e1[2]*e2[1])*(e1[1]*e2[2]-e1[2]*e2[1]);
+    area += (e1[0]*e2[2]-e1[2]*e2[0])*(e1[0]*e2[2]-e1[2]*e2[0]);
+    area += (e1[0]*e2[1]-e1[1]*e2[0])*(e1[0]*e2[1]-e1[1]*e2[0]);
+    // |x1 y1 z1|
+    // |x2 y2 z2|
+    // |x3 y3 z3|
+
+    // area += v1.get_x()*(v2.get_y()*v3.get_z()-v3.get_y()*v2.get_z());
+    // area -= v2.get_x()*(v1.get_y()*v3.get_z()-v3.get_y()*v1.get_z());
+    // area += v3.get_x()*(v1.get_y()*v2.get_z()-v2.get_y()*v1.get_z());    
+    // //  area = abs(Det3D(v1.get_x(),v1.get_y(),v1.get_z(),v2.get_x(),v2.get_y(),v2.get_z(),v3.get_x(),v3.get_y(),v3.get_z()));
+    
+    area = sqrt(area) / 2;
+    coord_type edgeSum = 0;
+
+    for(int vid =0; vid<3;vid++){
+    
+        Vertex va = mesh.get_vertex(t.TV((vid+1)%3));
+        Vertex vb = mesh.get_vertex(t.TV((vid+2)%3));
+        coord_type xdist = va.get_x() - vb.get_x();
+        coord_type ydist = va.get_y() - vb.get_y();
+        coord_type zdist = va.get_z() - vb.get_z();
+        edgeSum += xdist*xdist + ydist*ydist + zdist*zdist;
+       // cout<<edgeSum<<endl;
+    }
+
+    return 4*sqrt(3)*area/edgeSum;
+
+
+
+}

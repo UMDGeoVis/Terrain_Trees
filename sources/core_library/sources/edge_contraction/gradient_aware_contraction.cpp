@@ -74,6 +74,22 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify(PRT_Tree &tree, Mesh &me
     time.stop();
     time.print_elapsed_time("[TIME] Mesh and tree updating: ");
     cerr << "[MEMORY] peak for mesh and tree updating: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+
+    tree.clear_leaves_list();
+    tree.init_leaves_list(tree.get_root());
+
+    time.start();
+    check_delaunay(tree,mesh);
+    time.stop();
+    time.print_elapsed_time("[TIME] Check Delaunay property: ");
+
+    time.start();
+    compute_compactness(tree,mesh);
+    time.stop();
+    time.print_elapsed_time("[TIME] Compute triangle compactness:");
+
+
+
 }
 
 void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli, Forman_Gradient &gradient)
@@ -199,7 +215,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     //         omp_destroy_lock(&(v_locks[i]));
     if (params.is_parallel())
     {
-#pragma omp parallel for
+    #pragma omp parallel for
         for (int i = 0; i < l_num; i++)
             omp_destroy_lock(&(l_locks[i]));
     }
@@ -245,6 +261,11 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     check_delaunay(tree,mesh);
     time.stop();
     time.print_elapsed_time("[TIME] Check Delaunay property: ");
+
+    time.start();
+    compute_compactness(tree,mesh);
+    time.stop();
+    time.print_elapsed_time("[TIME] Compute triangle compactness:");
 
 }
 
