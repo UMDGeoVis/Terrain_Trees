@@ -354,10 +354,14 @@ void PRT_Tree::update_vertex_index(Node_V &n, ivect &new_v_positions, itype& ind
         }
         itype end = index_counter;
         if((end-start)<= this->vertices_threshold){
+
+
             n.delete_sons();
         }
         n.clear_v_array();
-        n.set_v_range(start,end);
+        if(end-start>0)
+            n.set_v_range(start,end);
+
     }
 }
 

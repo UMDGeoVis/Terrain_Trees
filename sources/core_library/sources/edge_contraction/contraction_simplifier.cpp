@@ -22,8 +22,7 @@
  */
 
 #include "contraction_simplifier.h"
-#include "terrain_trees/reindexer.h"
-#include "utilities/container_utilities.h"
+
 
 void Contraction_Simplifier::find_candidate_edges(Node_V &n, Mesh &mesh, leaf_VT &vts, edge_queue &edges, contraction_parameters &params)
 {
@@ -1091,7 +1090,7 @@ void Contraction_Simplifier::simplify_parallel(PRT_Tree &tree, Mesh &mesh, cli_p
     //params.print_simplification_counters();
     /// finally we have to update/compress the mesh and the tree
     time.start();
-    Contraction_Simplifier::update_mesh_and_tree(tree, mesh, params);
+    Contraction_Simplifier::update_mesh_and_tree(tree, mesh, params, cli);
     time.stop();
     time.print_elapsed_time("[TIME] Mesh and tree updating: ");
 
@@ -1171,7 +1170,7 @@ void Contraction_Simplifier::simplify(PRT_Tree &tree, Mesh &mesh, cli_parameters
     cerr << "[MEMORY] peak for Simplification: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
     /// finally we have to update/compress the mesh and the tree
-    Contraction_Simplifier::update_mesh_and_tree(tree, mesh, params);
+    Contraction_Simplifier::update_mesh_and_tree(tree, mesh, params, cli);
     cerr << "[MEMORY] peak for mesh and tree updating: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 }
 
@@ -1958,7 +1957,7 @@ leaf_VT &Contraction_Simplifier::get_VTS(Node_V &n, Mesh &mesh, LRU_Cache<int, l
     return it_c->second;
 }
 
-void Contraction_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params)
+void Contraction_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params, cli_parameters &cli)
 {
     Timer time;
 
@@ -2722,14 +2721,15 @@ void Contraction_Simplifier::check_delaunay(PRT_Tree &tree, Mesh &mesh){
 
     vector<bool> tri_delaunay(mesh.get_triangles_num(),true);
     int t_num = mesh.get_triangles_num();
-    cout<<"number of triangles: "<<t_num<<endl;
-    #pragma omp parallel for
+
+      #pragma omp parallel for
         for (unsigned i = 0; i < tree.get_leaves_number(); i++)
         {
             Node_V *leaf = tree.get_leaf(i);
             check_delaunay_leaf(tri_delaunay,*leaf, mesh, tree);
 
         }
+
     int count_invalid = 0;
     for(int j=0; j<tri_delaunay.size();j++){
 
@@ -2751,8 +2751,10 @@ void Contraction_Simplifier::check_delaunay_leaf(vector<bool>& tri_delaunay, Nod
     itype v_range = v_end - v_start;
 
 
+
    for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
+        
         RunIterator const& t_id = itPair.first;
         Triangle& tri = mesh.get_triangle(*t_id);
         if(n.indexes_vertex(tri.minindex())){
@@ -2787,7 +2789,7 @@ void Contraction_Simplifier::check_delaunay_leaf(vector<bool>& tri_delaunay, Nod
 }
 
 void Contraction_Simplifier::check_delaunay_triangle(bool& is_delaunay, Point& center, coord_type radius, Node_V &n, Mesh &mesh, Box &n_dom, int level, Spatial_Subdivision &division){
-   
+
     Point max(center.get_x()+radius, center.get_y()+radius);
     Point min(center.get_x()-radius, center.get_y()-radius);
     Box bounding_box(min,max);
@@ -2796,7 +2798,7 @@ void Contraction_Simplifier::check_delaunay_triangle(bool& is_delaunay, Point& c
     
     if (n.is_leaf())
     {
-           if(Geometry_Wrapper::point_in_circle_range(center, radius,n.get_v_start(),n.get_v_end(),mesh)){
+           if(n.indexes_vertices()&&Geometry_Wrapper::point_in_circle_range(center, radius,n.get_v_start(),n.get_v_end(),mesh)){
                 is_delaunay = false;
                 return;
            }
@@ -2856,10 +2858,10 @@ void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh){
 
 vector<pair<coord_type, int>>& Contraction_Simplifier::get_edge_costs(bool contracted){
     if(contracted)
-        return this.contracted_costs;
+        return this->contracted_costs;
     else 
     {
-        return this.skipped_costs;
+        return this->skipped_costs;
     }
 
 }

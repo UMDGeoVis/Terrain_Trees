@@ -6,6 +6,7 @@
 #include "basic_types/lru_cache.h"
 #include "terrain_trees/prt_tree.h"
 #include "statistics/statistics.h"
+#include "terrain_trees/reindexer.h"
 #include "utilities/container_utilities.h"
 #include "terrain_trees/mesh_updater.h"
 #include "utilities/usage.h"
@@ -30,7 +31,7 @@ public:
     
 protected:
     
-    void update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params);
+    void update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params,  cli_parameters &cli);
     void simplify_compute(Node_V &n, Mesh &mesh, LRU_Cache<int, leaf_VT> &cache, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree);
     void simplify_compute_parallel(Mesh &mesh,  Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree);
     void simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<int, leaf_VT> &cache, contraction_parameters &params, PRT_Tree &tree);

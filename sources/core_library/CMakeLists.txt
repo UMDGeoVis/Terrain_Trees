@@ -24,8 +24,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "-O3 -std=c++11 -fopenmp") ## Optimize
 #    set(CMAKE_EXE_LINKER_FLAGS "-s -lrt") ## Strip binary
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_CXX_FLAGS "-O3 -march=native -std=c++11 -fopenmp") ## Optimize
-    set(CMAKE_EXE_LINKER_FLAGS "-s") ## Strip binary
+    set(CMAKE_CXX_FLAGS "-O3 -ggdb3  -march=native -std=c++11 -fopenmp") ## Optimize
+    # set(CMAKE_EXE_LINKER_FLAGS "-s") ## Strip binary
 endif()
 
 include_directories(sources)

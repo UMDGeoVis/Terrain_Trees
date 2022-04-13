@@ -70,7 +70,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify(PRT_Tree &tree, Mesh &me
 
     /// finally we have to update/compress the mesh and the tree
     time.start();
-    Gradient_Aware_Simplifier::update_mesh_and_tree(tree, mesh, params, gradient);
+    Gradient_Aware_Simplifier::update_mesh_and_tree(tree, mesh, params, gradient, cli);
     time.stop();
     time.print_elapsed_time("[TIME] Mesh and tree updating: ");
     cerr << "[MEMORY] peak for mesh and tree updating: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
@@ -110,7 +110,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     {
         params.parallel_compute();
     }
-    else  // Another version for similating sequential simplification with parallel algorithm 
+    else  // Another version for simulating sequential simplification with parallel algorithm 
           // (can also be considered as sequential simplification without global cache)
     {     // It is not currently used in the test file
         params.sequential_compute();
@@ -248,7 +248,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     // Gradient_Aware_Simplifier::update_mesh_and_tree(tree,mesh,params,gradient);
     // cerr << "[MEMORY] peak for mesh and tree updating: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
     time.start();
-    Gradient_Aware_Simplifier::update_mesh_and_tree(tree, mesh, params, gradient);
+    Gradient_Aware_Simplifier::update_mesh_and_tree(tree, mesh, params, gradient, cli);
     time.stop();
     time.print_elapsed_time("[TIME] Mesh and tree updating: ");
 
@@ -261,7 +261,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     check_delaunay(tree,mesh);
     time.stop();
     time.print_elapsed_time("[TIME] Check Delaunay property: ");
-
+    cerr << "[MEMORY] peak for checking Delaunay property: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
     time.start();
     compute_compactness(tree,mesh);
     time.stop();
@@ -1265,7 +1265,7 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     // n.get_VV(vvs,mesh);
 }
 
-void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params, Forman_Gradient &gradient)
+void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params, Forman_Gradient &gradient,  cli_parameters &cli)
 {
      Timer time;
 
@@ -1329,7 +1329,23 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     time.print_elapsed_time("[TIME] Update tree (triangles): ");
     // cerr << "[MEMORY] peak for updating the tree (top-simplices): " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
+    Statistics stats;
+   
+    stats.get_index_statistics(tree, false);
 
+
+    // cli.original_vertex_indices.assign(tree.get_mesh().get_vertices_num(),-1);
+    cli.original_triangle_indices.assign(tree.get_mesh().get_triangles_num(),-1);
+    cerr<<"[TREE] reindexing after the simplification"<<endl;
+    time.start();
+    Reindexer reindexer = Reindexer();
+    // reindexer.reindex_tree_and_mesh(tree,true,cli.original_vertex_indices,
+    //                                     false,cli.original_triangle_indices);
+    reindexer.reindex_triangle_array(tree, false, cli.original_triangle_indices);
+    time.stop();
+    time.print_elapsed_time("[TIME] Time for reindexing after simplification");
+    Statistics stats_new;
+    stats_new.get_index_statistics(tree,cli.reindex);
 
     //cerr << "[RAM peak] for updating the mesh and the tree: " << to_string(MemoryUsage().getValue_in_MB(false)) << " Mbs" << std::endl;
 }

@@ -225,25 +225,11 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.start();
     simplifier.gradient_aware_simplify_parallel(tree,tree.get_mesh(),cli,forman_gradient);
     time.stop();
+    Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
+
     }
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
-    Statistics stats;
-    cli.reindex = true;
-    stats.get_index_statistics(tree,cli.reindex);
-
-
-    // cli.original_vertex_indices.assign(tree.get_mesh().get_vertices_num(),-1);
-    cli.original_triangle_indices.assign(tree.get_mesh().get_triangles_num(),-1);
-    cerr<<"[TREE] reindexing after the simplification"<<endl;
-    time.start();
-    Reindexer reindexer = Reindexer();
-    // reindexer.reindex_tree_and_mesh(tree,true,cli.original_vertex_indices,
-    //                                     false,cli.original_triangle_indices);
-    reindexer.reindex_triangle_array(tree, false, cli.original_triangle_indices);
-    time.stop();
-    time.print_elapsed_time("[TIME] Time for reindexing after simplification");
-    Statistics stats_new;
-    stats_new.get_index_statistics(tree,cli.reindex);
+    
     //// A brutal-force method for checking critical simplices after the simplification. 
     //// Should be disabled in experiments
    // count_critical_simplices(tree,cli,forman_gradient);
