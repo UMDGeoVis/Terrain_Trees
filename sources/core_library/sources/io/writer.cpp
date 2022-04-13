@@ -413,3 +413,19 @@ void Writer::write_critical_points(string mesh_name, map<short,set<ivect> > &cri
     output<<endl;
     output.close();
 }
+
+void Writer::write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& edge_costs){
+    stringstream stream;
+    stream<<mesh_name<<".txt";
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+
+    sort(edge_costs.begin(), edge_costs.end());
+    output<<"cost, node"<<endl;
+
+    for(itype i=0; i<edge_costs.size(); i++)
+    {
+        output<<edge_costs[i].first<<", "<<edge_costs[i].second<<endl;
+    }
+}

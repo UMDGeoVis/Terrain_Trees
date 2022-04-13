@@ -383,8 +383,7 @@ void Gradient_Aware_Simplifier::simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<i
 
     if (!n.indexes_vertices())
         return;
-    vector<coord_type> leaf_contract_costs; 
-    vector<coord_type> leaf_skipped_costs;
+
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -431,29 +430,17 @@ void Gradient_Aware_Simplifier::simplify_leaf(Node_V &n, Mesh &mesh, LRU_Cache<i
 
         get_edge_relations(e, et, vt0, vt1, v1_is_border, v2_is_border, outer_v_block, n, mesh, local_vts, is_v_border, cache, params, tree);
 
-        if (link_condition(e[0], e[1], *vt0, *vt1, et, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
+        if (link_condition(e[0], e[1], *vt0, *vt1, et, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) && valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh))
         {
-            if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
-                contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, cache, params, gradient, updated_edges);
-                edges_contracted_leaf++;
-                leaf_contract_costs.push_back(current->val);
-            }
-            else{
-                leaf_skipped_costs.push_back(current->val);
-            }
+
+            contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, cache, params, gradient, updated_edges);
+            edges_contracted_leaf++;
 
             // break;
         }
         delete current;
     }
 
-    #pragma omp critical
-    {
-        skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
-                      std::make_move_iterator(leaf_skipped_costs.end()));
-        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
-                      std::make_move_iterator(leaf_contract_costs.end()));
-    }
 
 }
 
@@ -1062,7 +1049,8 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
 
     if (!n.indexes_vertices())
         return;
-
+    vector<pair<coord_type, int>> leaf_contract_costs; 
+    vector<pair<coord_type, int>> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -1117,15 +1105,28 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
 
         // if(params.is_parallel()){
         VV vv_locks;
-        if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) && valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh))
+        if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
         {
-            contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
-            edges_contracted_leaf++;
+            if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
+                contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
+                edges_contracted_leaf++;
+                leaf_contract_costs.push_back(make_pair(n_id, current->val));
+                int nodeToUpdate = v_in_leaf[e[0]];
+                if (params.is_parallel())
+                {
+                    
+                    // A new step for cross edge case
+                    // Check possible new conflict nodes by checking the vv_locks
+                    // vv_locks stores all the vertices in the VV(v0) & VV(v1) that are not contained by n or outer_v_block
+                    update_conflict_nodes(vv_locks, nodeToUpdate, tree);
+                }
+            }
+            else{
+                leaf_skipped_costs.push_back(make_pair(n_id, current->val));
+            }
+
             // break;
 
-            // A new step for cross edge case
-            // Check possible new conflict nodes by checking the vv_locks
-            // vv_locks stores all the vertices in the VV(v0) & VV(v1) that are not contained by n or outer_v_block
             update_conflict_nodes(vv_locks, n_id, tree);
         }
         // for (iset_iter it = vv_locks.begin(); it != vv_locks.end(); it++)
@@ -1144,7 +1145,13 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
         // }
         delete current;
     }
-
+    #pragma omp critical
+    {
+        skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
+                      std::make_move_iterator(leaf_skipped_costs.end()));
+        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                      std::make_move_iterator(leaf_contract_costs.end()));
+    }
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }
@@ -1154,8 +1161,8 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
 
     if (!n.indexes_vertices())
         return;
-    vector<coord_type> leaf_contract_costs; 
-    vector<coord_type> leaf_skipped_costs;
+    vector<pair<coord_type, int>> leaf_contract_costs; 
+    vector<pair<coord_type, int>> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -1220,19 +1227,20 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
                 edges_contracted_leaf++;
                 // break;
-                n_id = v_in_leaf[e[0]];
+                leaf_contract_costs.push_back(make_pair(current->val, n_id));
+
+                int nodeToUpdate = v_in_leaf[e[0]];
 
                 // A new step for cross edge case
                 // Check possible new conflict nodes by checking the vv_locks
                 // vv_locks stores all the vertices in the VV(v0) & VV(v1) that are not contained by n or outer_v_block
                 if (params.is_parallel())
                 {
-                    update_conflict_nodes(vv_locks, n_id, tree);
+                    update_conflict_nodes(vv_locks, nodeToUpdate, tree);
                 }
-                leaf_contract_costs.push_back(current->val);
             }
             else{
-                leaf_skipped_costs.push_back(current->val);
+                leaf_skipped_costs.push_back(make_pair(current->val, n_id));
             }
 
         }

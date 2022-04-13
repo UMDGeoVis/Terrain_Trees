@@ -122,6 +122,8 @@ public:
 
     static void write_critical_points(string mesh_name, map<short, set<ivect> > &critical_simplices, Mesh &mesh);    
 
+    static void write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& edge_costs);
+
 protected:
     ///A constructor method
     Writer() {}

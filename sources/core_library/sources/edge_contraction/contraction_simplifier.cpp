@@ -2853,3 +2853,13 @@ void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh){
     cout<<"Triangle compactness: Max: "<<max<<", Min: "<<min<<", Avg: "<<avg<<endl;
     //TODO: write the vector to file
 }
+
+vector<pair<coord_type, int>>& Contraction_Simplifier::get_edge_costs(bool contracted){
+    if(contracted)
+        return this.contracted_costs;
+    else 
+    {
+        return this.skipped_costs;
+    }
+
+}

@@ -26,6 +26,7 @@ public:
     void error_range(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli, itype num_bin);
     void check_delaunay(PRT_Tree &tree, Mesh &mesh);
     void compute_compactness(PRT_Tree &tree, Mesh &mesh);
+    vector<pair<coord_type, int>>& get_edge_costs(bool contracted);
     
 protected:
     
@@ -151,8 +152,8 @@ protected:
     vector<Matrix> initialQuadric;
     vector<dvect> trianglePlane;
 
-    vector<coord_type> contracted_costs;
-    vector<coord_type> skipped_costs;
+    vector<pair<coord_type, int>> contracted_costs;
+    vector<pair<coord_type, int>> skipped_costs;
 
     vector<omp_lock_t> t_locks;
     vector<omp_lock_t> v_locks;
