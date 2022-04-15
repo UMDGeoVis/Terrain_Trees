@@ -894,7 +894,6 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
 
 void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree, Forman_Gradient &gradient)
 {
-
     //boost::dynamic_bitset<> conflict_nodes(tree.get_leaves_number());
     ivect nodes_status(tree.get_leaves_number(), 0);
     //cout<<"total leaf node number: "<<tree.get_leaves_number()<<endl;
@@ -909,19 +908,16 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
             Node_V *leaf = tree.get_leaf(i);
             if (params.is_parallel())
             {
-                if (nodes_status[i] == -1)
+                if (nodes_status[i] == 3)
                     continue;
             }
             //cout<<*leaf<<endl;
             if (!leaf->indexes_vertices())
             {
                 processed_node++;
-                nodes_status[i] = -1;
+                nodes_status[i] = 3;
                 continue;
             }
-            //check the array of conflict_nodes
-            // if nodes_status[i]==1, then continue
-            //    cout << "Current leaf node:" << i << " on thread " << omp_get_thread_num() << endl;
 
             if (params.is_parallel())
             {
@@ -943,12 +939,12 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                     bool cannot_process = false;
                     for (iset_iter it = conflicts.begin(); it != conflicts.end(); it++)
                     {
-                        //  cout<<"set leaf node:"<<*it<<" on thread "<<omp_get_thread_num()<<endl;
+                        // cout<<"set leaf node:"<<*it<<" on thread "<<omp_get_thread_num()<<endl;
                         omp_set_lock(&(l_locks[*it])); // leafs should be locked when being checked and updated.
                         int status = 0;
                         //   #pragma omp atomic read
                         status = nodes_status[*it];
-                        if (status == 1 || status == 2) //it is conflicted with another node being processed
+                        if (abs(status) == 1 || status == 2) //it is conflicted with another node being processed
                         {
                             // cout<<"conflict node id:"<<*it<<" with "<<i<<" on thread "<<omp_get_thread_num()<<endl;
                             omp_unset_lock(&(l_locks[*it]));
@@ -959,6 +955,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                                 omp_set_lock(&(l_locks[*it2]));
                                 if (nodes_status[*it2] == 1)
                                     nodes_status[*it2] = 0;
+                                else if(nodes_status[*it2] == -1)
+                                    nodes_status[*it2] = 3;
                                 omp_unset_lock(&(l_locks[*it2]));
                             }
                             //omp_unset_lock(&(l_locks[*it]));
@@ -972,6 +970,10 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                         {
                             nodes_status[*it] = 1;
                         }
+                        else if(status == 3)
+                        {
+                            nodes_status[*it] = -1;
+                        }
                         omp_unset_lock(&(l_locks[*it]));
                     }
                     if (cannot_process == true)
@@ -982,10 +984,14 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                         continue;
                     }
 
-                    // omp_set_lock(&(l_locks[i]));
+                    omp_set_lock(&(l_locks[i]));
                     // // set nodes_status[i]=2 when node is being processed
                     // nodes_status[i] = 2;
                     // omp_unset_lock(&(l_locks[i]));
+                    // #pragma omp critical
+                    // {
+                    //     cout<<"process leaf node:"<<i<<" on thread "<<omp_get_thread_num()<<endl;
+                    // }
                     processed_node = processed_node + 1;
                     //  processed = true;
                     // cout << "Start simplification" << endl;
@@ -997,8 +1003,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                     //  cout << "Finish simplification" << endl;
                     //set nodes_status[i]=-1 after processing
 
-                    omp_set_lock(&(l_locks[i]));
-                    nodes_status[i] = -1;
+                    //omp_set_lock(&(l_locks[i]));
+                    nodes_status[i] = 3;
                     omp_unset_lock(&(l_locks[i]));
                     //        cout << "Simplified leaf node:" << i << " on thread " << omp_get_thread_num() << endl;
 
@@ -1019,6 +1025,10 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                         {
                             cout << "Should not happen, check the locking system" << endl;
                         }
+                        else if(status == -1)
+                        {
+                            nodes_status[*it] = 3;
+                        }                        
                         //cout<<"unset leaf node:"<<*it<<" on thread "<<omp_get_thread_num()<<endl;
                         omp_unset_lock(&(l_locks[*it]));
                     }

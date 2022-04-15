@@ -2283,7 +2283,6 @@ if(cli.num_of_threads != 1){
 void Contraction_Simplifier::update_conflict_nodes(VV &vv_locks, int n_id, PRT_Tree &tree)
 {
 
-    // Question: How to find the leaf node index of the node containing v
     for (auto it = vv_locks.begin(); it != vv_locks.end(); it++)
     {
         int indexed_node_id;

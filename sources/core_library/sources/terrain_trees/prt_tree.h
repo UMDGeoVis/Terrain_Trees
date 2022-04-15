@@ -132,6 +132,8 @@ private:
      * \param t an integer argument, represents the triangle to insert
      */
     void add_triangle(Node_V& n, Box& domain, int level, itype t);
+    
+    void add_triangle_new(Node_V& n, Box& domain, int level, itype t);
     ///A protected method that split a node, creating the sons node, following the current division type
     /*!
      * This method also reinsert all the vertices and the tetrahedra, which are in the splitted node, into the sons node
@@ -190,7 +192,8 @@ private:
      * \param multifield a map representing the multifield assiciated to a vertex
     */
     void add_vertex_from_cloud(Node_V& n, Box& domain, int level, Vertex& v, itype vertex_index, vertex_multifield &multifield);
-
+    // a function that returns the lowest common ancestor of nodes containing three vertices of the same triangle. 
+    Box find_lowest_common_ancestor(Node_V& n, Box& domain, int level, itype t, Node_V* &ancestor, int& anc_level);
     vector<Node_V*> leaves;
 };
 

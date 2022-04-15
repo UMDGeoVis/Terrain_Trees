@@ -20,11 +20,15 @@ void PRT_Tree::build_tree()
 }
 
 void PRT_Tree::reinsert_triangles(){
+    cout<<"total: "<<mesh.get_triangles_num()<<endl;
     for(itype i=1;i<=this->mesh.get_triangles_num();i++)
     {
-        this->add_triangle(this->root,this->mesh.get_domain(),0,i);
-        // cout<<"triangle "<<i<<endl;
-        // cout<<mesh.get_triangle(i)<<endl;
+       Node_V* ancestor;
+       int anc_level = 0;
+       Box block = find_lowest_common_ancestor(this->root, this->mesh.get_domain(), 0, i, ancestor, anc_level);
+
+       this->add_triangle_new(*ancestor, block, anc_level, i);
+
     }
 }
 
@@ -104,6 +108,32 @@ int PRT_Tree::visit_and_unify(Node_V &n, Mesh &mesh){
 
 }
 
+// return the level of the ancestor node
+Box PRT_Tree::find_lowest_common_ancestor(Node_V& n, Box& domain, int level, itype t, Node_V*  &ancestor, int& anc_level){
+    if(n.is_leaf()){
+        ancestor = &n;
+        anc_level = level;
+        return domain;
+    }
+    else{
+        ancestor = &n;
+        anc_level = level;
+        Box smallest_block = domain;
+        for (int i = 0; i < this->subdivision.son_number(); i++)
+        {
+
+            if(n.get_son(i)->completely_indexes_triangle_vertices(this->mesh.get_triangle(t)))
+            {
+                Box son_dom = this->subdivision.compute_domain(domain,level,i);
+                int son_level = level +1;
+                smallest_block = find_lowest_common_ancestor(*n.get_son(i), son_dom, son_level, t, ancestor,anc_level);
+            }
+
+        }
+        return smallest_block;
+    }
+
+}
 
 void PRT_Tree::add_vertex(Node_V& n, Box& domain, int level, itype v)
 {
@@ -444,4 +474,20 @@ void PRT_Tree::init_leaves_list_with_divisions(Node_V &n,  Box &n_dom, int level
 
 }
 
+void PRT_Tree::add_triangle_new(Node_V& n, Box& domain, int level, itype t)
+{
 
+    if (!n.indexes_triangle_vertices(this->mesh.get_triangle(t))&&!Geometry_Wrapper::triangle_in_box_build(t,domain,this->mesh)) return;
+
+    if(n.is_leaf())
+        n.add_triangle(t);
+    else
+    {
+        for(int i=0;i<this->subdivision.son_number();i++)
+        {
+            Box son_dom = this->subdivision.compute_domain(domain,level,i);
+            int son_level = level +1;
+            this->add_triangle_new(*n.get_son(i),son_dom,son_level,t);
+        }
+    }
+}
