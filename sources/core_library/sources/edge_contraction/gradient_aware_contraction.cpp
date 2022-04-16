@@ -894,9 +894,16 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
 
 void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree, Forman_Gradient &gradient)
 {
-    //boost::dynamic_bitset<> conflict_nodes(tree.get_leaves_number());
+
+    // ***Node status*** 
+    // 0: default
+    // 1: conflict, should be switched to 0 after the current node is finished
+    // 2: being processed
+    // 3: finished
+    // -1: conflict and finished, should be switched to 3 after the current node is finished
+
+
     ivect nodes_status(tree.get_leaves_number(), 0);
-    //cout<<"total leaf node number: "<<tree.get_leaves_number()<<endl;
     int processed_node = 0;
     bool processed = false;
     do
@@ -931,24 +938,22 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                 // else we set the conflict nodes of leaf[i] to be 1 in nodes_status
                 else
                 {
+                    // set nodes_status[i]=2 when current node is being processed
                     nodes_status[i] = 2;
                     omp_unset_lock(&(l_locks[i]));
                     iset conflicts = conflict_leafs[i];
                     // Check if the conflict nodes were set to 1 already
-                    // bool shared_conflicts = false;
                     bool cannot_process = false;
                     for (iset_iter it = conflicts.begin(); it != conflicts.end(); it++)
                     {
                         // cout<<"set leaf node:"<<*it<<" on thread "<<omp_get_thread_num()<<endl;
                         omp_set_lock(&(l_locks[*it])); // leafs should be locked when being checked and updated.
                         int status = 0;
-                        //   #pragma omp atomic read
                         status = nodes_status[*it];
                         if (abs(status) == 1 || status == 2) //it is conflicted with another node being processed
                         {
                             // cout<<"conflict node id:"<<*it<<" with "<<i<<" on thread "<<omp_get_thread_num()<<endl;
                             omp_unset_lock(&(l_locks[*it]));
-                            //it++; No need, the current one should not be change to 0
                             for (iset_iter it2 = conflicts.begin(); it2 != it; it2++)
                             {
                                 //     cout<<"unset leaf node:"<<*it2<<" on thread "<<omp_get_thread_num()<<endl;
@@ -959,11 +964,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                                     nodes_status[*it2] = 3;
                                 omp_unset_lock(&(l_locks[*it2]));
                             }
-                            //omp_unset_lock(&(l_locks[*it]));
-                            // unset the locks that have been set
-                            cannot_process = true;
-                            //cout<<"neighbor conflict"<<endl;
 
+                            cannot_process = true;
                             break;
                         }
                         else if (status == 0)
@@ -985,9 +987,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                     }
 
                     omp_set_lock(&(l_locks[i]));
-                    // // set nodes_status[i]=2 when node is being processed
-                    // nodes_status[i] = 2;
-                    // omp_unset_lock(&(l_locks[i]));
+                    
+
                     // #pragma omp critical
                     // {
                     //     cout<<"process leaf node:"<<i<<" on thread "<<omp_get_thread_num()<<endl;
@@ -1036,10 +1037,7 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
             }
             else
             {
-
                 processed_node = processed_node + 1;
-                //  processed = true;
-                // cout << "Start simplification" << endl;
                 if (params.is_QEM() == true)
                     simplify_leaf_cross_QEM(*leaf, i, mesh, params, tree, gradient);
                 else
@@ -1074,19 +1072,11 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
 
     // Create a priority queue of candidate edges
     edge_queue edges;
-    // if (params.is_parallel())
-    // {
-    //     find_candidate_edges_parallel(n, mesh, local_vts, edges, params, true);
-    // }
-    // else
-
     find_candidate_edges(n, mesh, local_vts, edges, params);
     map<vector<int>, double> updated_edges;
     int edge_num = edges.size();
     int edges_contracted_leaf = 0;
 
-    // cout<<"Number of threads used: "<<omp_get_num_threads()<<endl;
-    // cout<<"Current thread id: "<<omp_get_thread_num()<<endl;
 
     params.add_edge_queue_size(edges.size());
     map<int, leaf_VT> local_cache;
@@ -1177,7 +1167,6 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
 
-    //cout<<"Simplification in leaf."<<endl;
     boost::dynamic_bitset<> is_v_border(v_end - v_start);
     leaf_VT local_vts(v_range, VT());
     n.get_VT_and_border(local_vts, is_v_border, mesh);
@@ -1326,18 +1315,24 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     time.start();
     cerr<<"[TREE] Update vertex index and remove unnecessary splitting"<<endl;
     
-    tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
+    //tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
 
+    tree.update_with_merge(tree.get_root(), new_v_positions, index_counter);
     // below step has been merged to the
     // tree.visit_and_unify(tree.get_root(),tree.get_mesh());
     time.stop();
     time.print_elapsed_time("[TIME] Update tree structure (merging blocks): ");
 
+    unordered_map<int, ivect> tris_to_update;
     time.start();
-    tree.reinsert_triangles();
+
+    tree.update_triangle_arrays(tree.get_root(), tree.get_mesh().get_domain(), 0, new_t_positions, tris_to_update, 0);
+    // tree.reinsert_triangles();
     time.stop();
     time.print_elapsed_time("[TIME] Update tree (triangles): ");
     // cerr << "[MEMORY] peak for updating the tree (top-simplices): " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+
+    //tree.visit(tree.get_root());
 
     Statistics stats;
    

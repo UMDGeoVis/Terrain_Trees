@@ -109,6 +109,7 @@ public:
     ///A public method that return the end iterator of the triangles array for explicitly unroll the runs of triangles
     inline ivect_iter get_t_array_end() { return this->triangles.end(); }
 
+    inline void set_t_array(ivect new_t_list){this->triangles=new_t_list;}
     // geometric procedures //
     /**
      * @brief A public method that checks if all the four vertices of a triangle are indexed by the node
