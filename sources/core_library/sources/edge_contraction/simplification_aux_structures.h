@@ -53,6 +53,7 @@ public:
             cerr<<"[STATS] contracted edges "<<checked_edges<<endl;
     }
     inline void calc_stats(){calculate_stats=true;}
+    inline bool output_stats(){return calculate_stats;}
 protected:
   int checked_edges;
   double maximum_limit;

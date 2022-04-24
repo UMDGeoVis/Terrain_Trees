@@ -429,3 +429,75 @@ void Writer::write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& e
         output<<edge_costs[i].first<<", "<<edge_costs[i].second<<endl;
     }
 }
+
+void Writer::write_edge_costs_vtk(string mesh_name, Mesh &mesh,  map<pair<int, int>, coord_type>& edge_costs){
+    stringstream stream;
+    stream<<mesh_name<<"_edge_costs.vtk";
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+
+    output<< "# vtk DataFile Version 3.0"<<endl<<endl;
+    output<< "ASCII "<<endl;
+    output<< "DATASET POLYDATA"<<endl;
+
+    vector<int> new_v_pos(mesh.get_vertices_num()+1, -1);
+    int v_counter = 0;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+
+        if(!mesh.is_vertex_removed(i))
+        {
+            new_v_pos[i] = v_counter;
+            v_counter++;
+        }
+
+    }
+    output<< "POINTS "<<v_counter<<" float"<<endl;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        if(!mesh.is_vertex_removed(i))
+        {
+            Vertex& vert = mesh.get_vertex(i);
+            output<<vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_z()<<endl;
+        }
+    }
+
+
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();){
+        if(new_v_pos[it->first.first]==-1||new_v_pos[it->first.second]==-1)
+            {
+                edge_costs.erase(it++);
+     
+            }
+        else{
+            ++it;
+        }
+    }
+
+    output<< "LINES "<<edge_costs.size()<<" "<<edge_costs.size()*3<<endl;
+
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();it++){
+        output<< "2 "<< new_v_pos[it->first.first] <<" "<< new_v_pos[it->first.second] <<endl;
+    }
+
+    output<< "CELL_DATA "<<edge_costs.size()<<endl;
+    output<< "scalars cellvar float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();it++){
+        output<<it->second<<" ";
+    }
+
+    output<<endl;
+    
+    output<< "POINT_DATA "<<v_counter<<endl;
+    output<< "scalars pointvar float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        if(!mesh.is_vertex_removed(i))
+        {
+            Vertex& vert = mesh.get_vertex(i);
+            output<<vert.get_z()<<" ";
+        }
+    }
+    cout<<endl;
+
+}

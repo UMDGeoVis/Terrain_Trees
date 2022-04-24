@@ -85,92 +85,7 @@ void Contraction_Simplifier::find_candidate_edges_parallel(Node_V &n, Mesh &mesh
 {
     map<ivect, coord_type> lengths;
     ivect e;
-    /* if (!is_cross)
-    {
-        for (RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
-        {
 
-            RunIterator const &t_id = itPair.first;
-
-            Triangle &t = mesh.get_triangle(*t_id);
-            if (n.partial_indexes_triangle_vertices(t))
-            {
-                {
-                    omp_set_lock(&(t_locks[*t_id - 1]));
-                    if (mesh.is_triangle_removed(*t_id))
-                    {
-                        omp_unset_lock(&(t_locks[*t_id - 1]));
-                        continue;
-                    }
-                    else if (!mesh.is_triangle_removed(*t_id))
-                    {
-                        for (int i = 0; i < 3; i++)
-                        {
-                            t.TE(i, e);
-                            if (n.completely_indexes_simplex(e)) // e (v1,v2) is a candidate edge if at least v2 is in n
-                            {
-                                map<ivect, coord_type>::iterator it = lengths.find(e);
-                                if (it == lengths.end())
-                                {
-                                    coord_type length;
-                                    Vertex &v1 = mesh.get_vertex(e[0]);
-                                    Vertex &v2 = mesh.get_vertex(e[1]);
-                                    dvect dif = {v1.get_x() - v2.get_x(), v1.get_y() - v2.get_y(), v1.get_z() - v2.get_z()};
-                                    //  cout<<dif[0]<<", "<<dif[1]<<", "<<dif[2]<<endl;
-                                    length = sqrt(dif[0] * dif[0] + dif[1] * dif[1] + dif[2] * dif[2]);
-                                    lengths[e] = length;
-
-                                    if (length - params.get_maximum_limit() < Zero)
-                                    {
-                                        // cout<<"["<<e[0]<<","<<e[1]<<"]  Edge length: "<<length<<endl;
-                                        edges.push(new Geom_Edge(e, length));
-                                        //     cout<<"ENQUEUE"<<endl;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    omp_unset_lock(&(t_locks[*t_id - 1]));
-                }
-            }
-            else if (n.completely_indexes_triangle_vertices(t))
-            { // then there is  no need to check if the edge is contained by the node
-
-                if (mesh.is_triangle_removed(*t_id))
-                {
-                    continue;
-                }
-
-                for (int i = 0; i < 3; i++)
-                {
-                    t.TE(i, e);
-
-                    map<ivect, coord_type>::iterator it = lengths.find(e);
-                    // cout<<e[0]<<" and "<<e[1]<<endl;
-                    if (it == lengths.end())
-                    {
-                        coord_type length;
-                        Vertex &v1 = mesh.get_vertex(e[0]);
-                        Vertex &v2 = mesh.get_vertex(e[1]);
-                        dvect dif = {v1.get_x() - v2.get_x(), v1.get_y() - v2.get_y(), v1.get_z() - v2.get_z()};
-                        //  cout<<dif[0]<<", "<<dif[1]<<", "<<dif[2]<<endl;
-                        length = sqrt(dif[0] * dif[0] + dif[1] * dif[1] + dif[2] * dif[2]);
-                        //  Edge e((*it)[0],(*it)[1]);
-                        lengths[e] = length;
-                        //Edge edge_obj(e[0],e[1]);
-                        if (length - params.get_maximum_limit() < Zero)
-                        {
-                            // cout<<"["<<e[0]<<","<<e[1]<<"]  Edge length: "<<length<<endl;
-                            edges.push(new Geom_Edge(e, length));
-                            //     cout<<"ENQUEUE"<<endl;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else
-    { */
     for (RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const &t_id = itPair.first;
@@ -846,6 +761,15 @@ void Contraction_Simplifier::update_parallel(const ivect &current_e, VT &vt, VT 
                 // #pragma omp critical
                 updated_edges.insert(updated_edge);
             }
+
+            if(params.output_stats()){
+                #pragma omp critical 
+                {
+                    edge_costs_output[make_pair((*it)[0], (*it)[1])] = error;
+            
+                }
+            }
+
             if (new_vertex_pos == 1)
                 {
                     new_edge = {(*it)[1], (*it)[0]};
@@ -2037,6 +1961,12 @@ void Contraction_Simplifier::find_candidate_edges_QEM(Node_V &n, Mesh &mesh, lea
                  continue;
             int new_vertex_pos = -1;
             double error = compute_error(e[0], e[1], mesh, new_vertex_pos);
+
+            if(params.output_stats()&&n.indexes_vertex(e[1])){
+                #pragma omp critical
+                    edge_costs_output[make_pair(e[0],e[1])] = error;
+            }
+
          //   assert(new_vertex_pos != -1);
             if (new_vertex_pos == 1)
                 {

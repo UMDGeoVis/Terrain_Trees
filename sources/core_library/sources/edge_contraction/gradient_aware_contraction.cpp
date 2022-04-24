@@ -119,6 +119,9 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     int simplification_round;
     int round = 1;
 
+
+    params.calc_stats();
+
     time.start();
     cout << "Number of threads used in the simplification:" << omp_get_max_threads() << endl;
     // const int t_num = mesh.get_triangles_num();
@@ -200,6 +203,11 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
 
         // time.start();
         // cout<<"number of remaining triangles: "<<tree.get_mesh().get_triangles_num()<<endl;
+
+        if(params.output_stats()){
+                Writer::write_edge_costs_vtk("test_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
+
+        }
 
         if (simplification_round == params.get_contracted_edges_num())
             break;
