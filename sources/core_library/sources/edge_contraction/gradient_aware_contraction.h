@@ -4,6 +4,7 @@
 #include "contraction_simplifier.h"
 #include "morse/forman_gradient.h"
 #include "morse/forman_gradient_topological_relations.h"
+#include "utilities/string_management.h"
 
 class Gradient_Aware_Simplifier: public Contraction_Simplifier{
 

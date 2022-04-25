@@ -119,7 +119,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     int simplification_round;
     int round = 1;
 
-
+    // Uncomment below line if we want to output edge costs vtk file. 
     params.calc_stats();
 
     time.start();
@@ -171,6 +171,8 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
         //  vector<dvect>().swap(trianglePlane);
         cerr << "[MEMORY] peak for computing QEM: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
     }
+    stringstream base;
+    base << string_management::get_path_without_file_extension(cli.mesh_path);
     time.start();
     while (1)
     {
@@ -205,8 +207,10 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
         // cout<<"number of remaining triangles: "<<tree.get_mesh().get_triangles_num()<<endl;
 
         if(params.output_stats()){
-                Writer::write_edge_costs_vtk("test_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
+                stringstream out;
 
+                Writer::write_edge_costs_vtk(base.str()+"_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
+                this->edge_costs_output.clear();
         }
 
         if (simplification_round == params.get_contracted_edges_num())
@@ -834,71 +838,6 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
     //Triangle
 }
 
-// void Gradient_Aware_Simplifier::get_edge_relations(ivect &e, ET &et, VT *&vt0, VT *&vt1, bool &v1_is_border, bool &v2_is_border, Node_V *&outer_v_block,
-//                                                    Node_V &n, Mesh &mesh, leaf_VT &vts, boost::dynamic_bitset<> is_border_edge, LRU_Cache<int, leaf_VT> &cache, contraction_parameters &params, PRT_Tree &tree)
-// {
-
-//     //cout<<"[NOTICE]get edge relation"<<endl;
-//     outer_v_block = NULL;
-//     /// inverted order as I only need the block indexing v1
-//     if (e[1] > e[0])
-//     {
-//         vt1 = Contraction_Simplifier::get_VT(e[1], n, mesh, vts, cache, tree, outer_v_block, params);
-//         vt0 = Contraction_Simplifier::get_VT(e[0], n, mesh, vts, cache, tree, outer_v_block, params);
-
-//         v2_is_border = is_border_edge[e[1] - n.get_v_start()];
-//         if (n.indexes_vertex(e[0]))
-//         {
-//             v1_is_border = is_border_edge[e[0] - n.get_v_start()];
-//         }
-//         else
-//         {
-//             for (auto it = vt0->begin(); it != vt0->end(); it++)
-//             {
-//                 Triangle &t = mesh.get_triangle(*it);
-//                 int v_pos = t.vertex_index(e[0]);
-//                 for (int v1 = 1; v1 < t.vertices_num(); v1++)
-//                 {
-//                     if (t.is_border_edge((v1 + v_pos) % t.vertices_num()))
-//                     {
-//                         v1_is_border = true;
-//                         break;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     else
-//     {
-
-//         vt0 = Contraction_Simplifier::get_VT(e[0], n, mesh, vts, cache, tree, outer_v_block, params);
-//         vt1 = Contraction_Simplifier::get_VT(e[1], n, mesh, vts, cache, tree, outer_v_block, params);
-
-//         v1_is_border = is_border_edge[e[0] - n.get_v_start()];
-//         if (n.indexes_vertex(e[1]))
-//         {
-//             v2_is_border = is_border_edge[e[1] - n.get_v_start()];
-//         }
-//         else
-//         {
-//             for (auto it = vt1->begin(); it != vt1->end(); it++)
-//             {
-//                 Triangle &t = mesh.get_triangle(*it);
-//                 int v_pos = t.vertex_index(e[1]);
-//                 for (int v1 = 1; v1 < t.vertices_num(); v1++)
-//                 {
-//                     if (t.is_border_edge((v1 + v_pos) % t.vertices_num()))
-//                     {
-//                         v2_is_border = true;
-//                         break;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-
-//     Contraction_Simplifier::get_ET(e, et, n, mesh, vts);
-// }
 
 void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree, Forman_Gradient &gradient)
 {
@@ -1313,10 +1252,6 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     // time.print_elapsed_time("[TIME] Compact and update mesh: ");
     // cerr << "[MEMORY] peak for compacting and updating the mesh: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
-
-    // cerr<<"------------"<<endl;
-
-     
     //    cerr<<"[TREE] update indices in the tree"<<endl;
     ///TODO: Check triangle intersection before updating the tree.
     int index_counter = 1;
@@ -1333,8 +1268,11 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
 
     unordered_map<int, ivect> tris_to_update;
     time.start();
-
+    
+    //// Solution 1: update triangle arrays
     tree.update_triangle_arrays(tree.get_root(), tree.get_mesh().get_domain(), 0, new_t_positions, tris_to_update, 0);
+    
+    //// Solution 2: reinsert all triangles again
     // tree.reinsert_triangles();
     time.stop();
     time.print_elapsed_time("[TIME] Update tree (triangles): ");
