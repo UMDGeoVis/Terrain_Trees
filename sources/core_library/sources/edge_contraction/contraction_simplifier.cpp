@@ -846,6 +846,16 @@ void Contraction_Simplifier::update_parallel(const ivect &current_e, VT &vt, VT 
                 // #pragma omp critical
                 updated_edges.insert(updated_edge);
             }
+
+            if(params.output_stats()){
+                #pragma omp critical 
+                {
+                    edge_costs_output[make_pair((*it)[0], (*it)[1])] = error;
+            
+                }
+            }
+
+
            if (new_vertex_pos == 1)
              {
                new_edge = {(*it)[1], (*it)[0]};

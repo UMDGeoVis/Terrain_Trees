@@ -222,9 +222,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     //     for (int i = 0; i < t_num; i++)
     //         omp_destroy_lock(&(t_locks[i]));
 
-    // #pragma omp parallel for
-    //     for (int i = 0; i < v_num; i++)
-    //         omp_destroy_lock(&(v_locks[i]));
+
     if (params.is_parallel())
     {
     #pragma omp parallel for
