@@ -361,7 +361,7 @@ void Forman_Gradient_Computation::initial_filtering(Mesh &mesh)
         }
        
 
-    cout<<filtration[100]<<"; "<<filtration[59]<<endl;
+
 }
 
 void Forman_Gradient_Computation::initial_filtering_IA(Mesh &mesh)
@@ -390,23 +390,31 @@ void Forman_Gradient_Computation::initial_filtering_IA(Mesh &mesh)
     cout<<filtration[100]<<"; "<<filtration[59]<<endl;
 }
 
-void Forman_Gradient_Computation::reset_filtering(Mesh &mesh,ivect& original_vertex_indices){
+void Forman_Gradient_Computation::reset_filtering(Mesh &mesh,ivect& original_vertex_indices, bool new_to_old){
     utype num_v = mesh.get_vertices_num();
    
 
     cout<<"vertices number: "<<num_v<<endl;
-   
+    uvect tmp = vector<utype>(num_v, 0);
+    //final filtration
 
-    uvect tmp = filtration; //final filtration
-    // cout<<filtration[100]<<"; "<<filtration[59]<<endl;
-    // cout<<tmp[100]<<"; "<<tmp[59]<<endl;
-    for(utype j=0;j<num_v;j++){
-        filtration[j]=tmp[original_vertex_indices[j]-1];
- 
-    }
-//cout<<filtration[100]<<"; "<<filtration[59]<<endl;
+    if(new_to_old){
+        cout<<"after reindexing"<<endl;
+        for(utype j=0;j<num_v;j++){
+            tmp[j]=filtration[original_vertex_indices[j]-1];
     
-     //      cout<<filtration[]<<endl;
+        }
+    }
+    else{
+        cout<<"after simplification"<<endl;
+        cout<<filtration.size()<<endl;
+        cout<<original_vertex_indices.size()<<endl;
+        for(utype j=0;j<original_vertex_indices.size();j++){
+            if(original_vertex_indices[j]!=-1)
+                tmp[original_vertex_indices[j]-1]=filtration[j];
+        }
+    }
+    filtration = tmp;
 
 }
 

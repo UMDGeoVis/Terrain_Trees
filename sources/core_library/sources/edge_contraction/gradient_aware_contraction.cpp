@@ -119,8 +119,8 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     int simplification_round;
     int round = 1;
 
-    // Uncomment below line if we want to output edge costs vtk file. 
-    params.calc_stats();
+    if(cli.evaluation_mode)
+        params.calc_stats();
 
     time.start();
     cout << "Number of threads used in the simplification:" << omp_get_max_threads() << endl;
@@ -1244,7 +1244,7 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     /// NEW: the update_and_compact procedure check internally if we have removed all the top d-simplices
     bool all_deleted = mu.update_and_clean_triangles_arrays(mesh, new_v_positions, new_t_positions, params.get_counter());
 
-    gradient.reorder_forman_gradient(mesh, new_t_positions);
+
 
     // time.stop();
     // time.print_elapsed_time("[TIME] Compact and update mesh: ");
@@ -1263,6 +1263,9 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     // tree.visit_and_unify(tree.get_root(),tree.get_mesh());
     time.stop();
     time.print_elapsed_time("[TIME] Update tree structure (merging blocks): ");
+
+    // save the new vertex indexes for filtration update
+    cli.new_vertex_indices = new_v_positions;
 
     unordered_map<int, ivect> tris_to_update;
     time.start();
@@ -1290,11 +1293,26 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     Reindexer reindexer = Reindexer();
     // reindexer.reindex_tree_and_mesh(tree,true,cli.original_vertex_indices,
     //                                     false,cli.original_triangle_indices);
-    reindexer.reindex_triangle_array(tree, false, cli.original_triangle_indices);
+    reindexer.reindex_triangle_array(tree, true, cli.original_triangle_indices);
     time.stop();
     time.print_elapsed_time("[TIME] Time for reindexing after simplification");
     Statistics stats_new;
     stats_new.get_index_statistics(tree,cli.reindex);
 
+    map<int, int> reindexed_t_pos_map;
+    for(int i = 0; i < cli.original_triangle_indices.size(); i++){
+        reindexed_t_pos_map[cli.original_triangle_indices[i]] = i;
+    }
+
+    ivect().swap(cli.original_triangle_indices);
+
+    for(int i = 0; i < new_t_positions.size(); i++){
+        if(new_t_positions[i] != -1){
+            new_t_positions[i] = reindexed_t_pos_map[new_t_positions[i]];
+        }
+    }
+    gradient.reorder_forman_gradient(mesh, new_t_positions);
+    
+    // cout<<"finished"<<endl;
     //cerr << "[RAM peak] for updating the mesh and the tree: " << to_string(MemoryUsage().getValue_in_MB(false)) << " Mbs" << std::endl;
 }

@@ -75,7 +75,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
     load_tree(tree,cli);
 
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
-    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
 
     cout<<"[NOTA] Computing the gradient field"<<endl;
     time.start();

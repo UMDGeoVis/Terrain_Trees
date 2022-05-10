@@ -59,6 +59,7 @@
 #include "morse/forman_gradient_computation.h"
 #include "morse/forman_gradient_features_extractor.h"
 #include "morse/forman_gradient_simplifier.h"
+#include "morse/boundary_matrix.h"
 #include "utilities/cli_parameters.h"
 #include "utilities/usage.h"
 

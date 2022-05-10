@@ -320,10 +320,10 @@ public:
             {
                 arcs_up += it->second->getArcs(true).size();
                 if(it->second->getArcs(true).size() == 2)
-                    num_saddle_with_two_max++;
+                    num_saddle_with_two_min++;
                 arcs_down += it->second->getArcs(false).size();
                 if(it->second->getArcs(false).size() == 2)
-                    num_saddle_with_two_min++;
+                    num_saddle_with_two_max++;
             }
             cerr<<"a_u: "<<arcs_up<<" a_d: "<<arcs_down<<" tot: "<<(arcs_up+arcs_down)<<endl;
             cerr<<"saddle_with_two_min: "<<num_saddle_with_two_min<<endl;

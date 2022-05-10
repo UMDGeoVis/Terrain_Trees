@@ -31,5 +31,5 @@ endif()
 include_directories(sources)
 add_subdirectory(sources)
 
-target_include_directories(_terrain_trees_core PUBLIC ${PROJECT_BINARY_DIR}/sources/)
-target_include_directories(_terrain_trees_apps PUBLIC ${PROJECT_BINARY_DIR}/sources/)
+target_include_directories(_terrain_trees_core PUBLIC ${PROJECT_SOURCE_DIR}/sources/)
+target_include_directories(_terrain_trees_apps PUBLIC ${PROJECT_SOURCE_DIR}/sources/)

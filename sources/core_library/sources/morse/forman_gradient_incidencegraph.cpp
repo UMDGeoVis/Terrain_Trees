@@ -664,3 +664,40 @@ void Forman_Gradient_Features_Extractor::explore_asc1cell_mig(Node_T &n, itype v
     }
 
 }
+
+void Forman_Gradient_Features_Extractor::getBoundarySimplices(ivect key_id, int dim, vector<vector<int>>& boundary){
+
+    boundary.clear();
+    set<vector<int>> bd_set;
+    if(dim == 1){
+        pair<int, int> et = make_pair(key_id[0], key_id[1]);
+        iNode* saddle = forman_ig.find_saddle(et); 
+        set<Arc*> &arcs_up = saddle->getArcs(true);
+        for(set<Arc*>::const_iterator it=arcs_up.begin(); it!=arcs_up.end(); ++it)
+        {
+            int minimum = ((*it)->getNode_i())->get_critical_index();
+            bd_set.insert(ivect(1,minimum));
+        }
+    }
+    else if(dim == 2){
+        nNode* maximum = forman_ig.find_maximum(key_id[0]); 
+        set<Arc*> &arcs = maximum->getArcs();
+        for(set<Arc*>::const_iterator it=arcs.begin(); it!=arcs.end(); ++it)
+        {
+
+            
+
+
+            pair<int,int> et = ((iNode*)(*it)->getNode_i())->get_edge_id();
+            vector<int> saddle = {et.first, et.second};
+            bd_set.insert(saddle);
+        }
+    }
+    else if(dim == 0){
+        // should not happen if we have checked it before calling this function
+        // we return nothing
+        return;
+    }
+    
+    boundary = vector<ivect>(bd_set.begin(), bd_set.end());
+}
