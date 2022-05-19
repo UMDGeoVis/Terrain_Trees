@@ -594,7 +594,7 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
     itype t3_sin = -1;
     bool v2_is_critical = true;
 
-    // boost::dynamic_bitset<> edge_is_critical(vt2.size(),true);
+    // map<int, bool> edge_is_critical;
     map<int, ivect> ets;
     for (int i = 0; i < vt2.size(); i++)
     {
@@ -1167,9 +1167,11 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
         VV vv_locks;
         if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
         {
+            
+            //if(valid_boundary_condition(e[0],e[1],*vt0,*vt1,et,v1_is_border,v2_is_border,mesh)){
             if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
-                edges_contracted_leaf++;
+                
                 // break;
                 leaf_contract_costs.push_back(make_pair(current->val, n_id));
 

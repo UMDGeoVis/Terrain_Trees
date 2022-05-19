@@ -126,6 +126,7 @@ public:
 
     static void write_edge_costs_vtk(string mesh_name, Mesh &mesh, map<pair<int, int>, coord_type>& edge_costs);
 
+    static void write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,int> &pairs, vector<vector<int>>& index_to_simplex);
 protected:
     ///A constructor method
     Writer() {}
@@ -269,7 +270,6 @@ template<class N, class D> void Writer::extract_leaf_domains(N &n, D &division, 
         }
     }
 }
-
 
 
 #endif	/* _WRITER_H */

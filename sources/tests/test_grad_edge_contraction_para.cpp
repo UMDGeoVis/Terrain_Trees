@@ -5,7 +5,7 @@ void load_tree_lite(PRT_Tree& tree, cli_parameters &cli);
 void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli);
 void load_terrain(PRT_Tree& tree, cli_parameters &cli);
 void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient);
-void output_boundary_matrix(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration);
+void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration);
 
 int main(int argc, char** argv)
 {
@@ -213,7 +213,10 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
 
     if(cli.evaluation_mode){
         cout<<"boundary matrix before the simplification"<<endl;
-        output_boundary_matrix(tree, cli, forman_gradient, gradient_computation->get_filtration());
+        stringstream before;
+        before<<base.str();
+        before<<"_orig";
+        output_boundary_matrix(before.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());
     }
 
 
@@ -239,7 +242,10 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     if(cli.evaluation_mode){
         gradient_computation->reset_filtering(tree.get_mesh(),cli.new_vertex_indices, false);
         cout<<"Reorder the filtration"<<endl;
-        output_boundary_matrix(tree, cli, forman_gradient, gradient_computation->get_filtration());
+        stringstream after;
+        after<<base.str();
+        after<<"_simplified";
+        output_boundary_matrix(after.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());
     }
  
 
@@ -315,7 +321,7 @@ void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradie
      cout<<"min saddle max: "<<_min<<" "<<saddle<<" "<<_max<<endl;
 }
 
-void output_boundary_matrix(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration){
+void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration){
     vector<vector<int> >        matrix;
     map<int,int>                allpairs;
     vector<int>                 homology;
@@ -373,7 +379,6 @@ void output_boundary_matrix(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient
             map<int, int> v_count;
             for(int i=0; i<3; i++){
                 for(int t = 0; t < 2; t++){
-                    if(et[t] > 0)  // when saddle is on the boundary, the second et is negative
                         v_count[mesh.get_triangle(et[t]).TV(i)]++;
                 }
             }
@@ -395,7 +400,6 @@ void output_boundary_matrix(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient
         }
     }
 
-    cout<<"extraction of maxima"<<endl;
     map<itype, nNode*>& maxima = ig.getMaxima();
     for(map<itype, nNode*>::iterator it=maxima.begin(); it!=maxima.end(); ++it)
     {
@@ -432,11 +436,18 @@ void output_boundary_matrix(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient
     }
 
     cout<<"update bdmatrix"<<endl;
+    vector<vector<int>> index_to_simplex = vector<vector<int>>(global_index);
+    for(auto p : simplex_to_index)
+        index_to_simplex[p.second] = p.first;
+
 
     bdmatrix->sort();
     bdmatrix->reduce();
     bdmatrix->getMatrix(matrix);
     bdmatrix->getPairs(allpairs);
     bdmatrix->getHomology(homology);
+
+    
+    Writer::write_boundary_matrix_pair(mesh_name, mesh, allpairs, index_to_simplex);
     //  features_extractor.print_stats();
 }
