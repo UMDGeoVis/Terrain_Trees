@@ -429,3 +429,4 @@ void Writer::write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& e
         output<<edge_costs[i].first<<", "<<edge_costs[i].second<<endl;
     }
 }
+

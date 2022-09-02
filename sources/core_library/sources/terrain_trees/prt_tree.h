@@ -106,6 +106,8 @@ public:
      */
     int visit_and_unify(Node_V &n, Mesh &mesh);
 
+    void visit(Node_V &n);
+
 private:
     ///A private variable representing the maximum number of vertices admitted for a node
     int vertices_threshold;

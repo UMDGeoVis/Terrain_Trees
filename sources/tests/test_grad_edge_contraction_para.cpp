@@ -171,7 +171,7 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     Statistics stats_orig;
     cli.reindex = true;
     stats_orig.get_index_statistics(tree,cli.reindex);
-    Writer::write_mesh_VTK("orig",tree.get_mesh());     
+    // Writer::write_mesh_VTK("orig",tree.get_mesh());     
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
     gradient_computation->reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
     
@@ -225,7 +225,8 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.start();
     simplifier.gradient_aware_simplify_parallel(tree,tree.get_mesh(),cli,forman_gradient);
     time.stop();
-    Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
+    if(cli.contract_all_edges)
+        Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
 
     }
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
@@ -235,7 +236,10 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
    // count_critical_simplices(tree,cli,forman_gradient);
 
     // cout<<output_name<<endl;
-     Writer::write_mesh_VTK("simplified",tree.get_mesh()); 
+
+
+     //Writer::write_mesh_VTK("simplified",tree.get_mesh()); 
+
      Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
 
     //  Forman_Gradient_Features_Extractor features_extractor;   

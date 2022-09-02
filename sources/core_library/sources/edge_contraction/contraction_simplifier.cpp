@@ -2735,8 +2735,9 @@ void Contraction_Simplifier::check_delaunay(PRT_Tree &tree, Mesh &mesh){
         if(tri_delaunay[j]==false)
           count_invalid++;
     }
+    cout<<"total triangle num: "<<t_num<<endl;
     cout<<"Invalid triangle num: "<<count_invalid<<endl;
-    cout<<"Invalid percentage: "<<100*count_invalid/t_num<<"%"<<endl;
+    cout<<"Invalid percentage: "<<100*((double)count_invalid/(double)t_num)<<"%"<<endl;
 
 
 }

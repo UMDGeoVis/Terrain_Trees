@@ -491,3 +491,21 @@ void PRT_Tree::add_triangle_new(Node_V& n, Box& domain, int level, itype t)
         }
     }
 }
+
+
+void PRT_Tree::visit(Node_V& n){
+    if(n.is_leaf()){
+        cout<<n<<endl;
+        for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+        {
+            RunIterator const& t_id = itPair.first;
+            cout<<*t_id<<", ";
+        }
+        cout<<endl;
+    }
+    else{
+        for(int i=0; i<4; i++){
+            visit(*n.get_son(i));
+        }
+    }
+}

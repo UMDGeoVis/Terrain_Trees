@@ -124,6 +124,7 @@ public:
 
     static void write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& edge_costs);
 
+   template<class N, class D> static void write_edge_cost_distribution(N& root,D& division, string file_name, Mesh &mesh, string& csv_path);
 protected:
     ///A constructor method
     Writer() {}
@@ -266,6 +267,92 @@ template<class N, class D> void Writer::extract_leaf_domains(N &n, D &division, 
             }
         }
     }
+}
+
+template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D &division, string file_name, Mesh &mesh, string& csv_path){
+
+
+    ofstream output(file_name.c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+    vector<box_4> all_leaves;
+    vector<Point> all_points; //with_duplicate
+
+    ifstream csvFile(csv_path);
+    string id_str;
+    if(!csvFile.is_open()) throw std::runtime_error("Could not open file");
+    getline(csvFile, id_str);
+    map<int, int> edgeCount;
+    while(getline(csvFile, id_str, ',')){
+        //stringstream ss(line);
+        int id, num;
+        id = atoi(id_str.c_str());
+        
+        string count_str;
+        getline(csvFile, count_str);
+        num = atoi(count_str.c_str());
+        
+        //ss>>id>>tmp>>num;
+        edgeCount[id] = num;
+        // cout<<"id: "<<id<<" count: "<<num<<endl;
+    }
+
+    output<<"# vtk DataFile Version 2.0" << endl << endl
+         << "ASCII" << endl << "DATASET UNSTRUCTURED_GRID " <<  endl << endl;
+
+    Writer::extract_leaf_domains(root,division,mesh.get_domain(), 0, all_points, all_leaves, mesh);
+    cout<< "number of leaves: "<<all_leaves.size()<<endl;
+    output<< "POINTS " << all_points.size() << " float" << endl;
+
+    for(unsigned int v=0; v<all_points.size(); v++)
+        output<<all_points.at(v).get_x()<<" "<<all_points.at(v).get_y()<<" -20"<<endl; /// fixed constant
+
+    output<<endl << "CELLS " << all_leaves.size() << " " << (all_leaves.size()*5) << endl;
+
+    for(unsigned int b=0; b<all_leaves.size(); b++)
+        output<<"4 "<<all_leaves.at(b).v[0]<<" "<<all_leaves.at(b).v[1]<<" "<<all_leaves.at(b).v[2]<<" "<<all_leaves.at(b).v[3]<<endl;
+
+    output<< endl << "CELL_TYPES " << all_leaves.size() << endl;
+    for (unsigned int i = 0; i < all_leaves.size(); ++i)
+        output<< "9 ";
+    output<< endl;
+
+    output<< "CELL_DATA "<<all_leaves.size()<<endl;
+    output<< "scalars count int"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    //int leaf_id = 0;
+    for(int b=0; b<all_leaves.size(); b++){
+        float val=0;
+        if( edgeCount.find(b) != edgeCount.end() )
+        { 
+
+            val = edgeCount[b];
+
+        }
+        output<<val<<" ";
+    }
+
+    output<< endl;
+    output<< "scalars avg_cost float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    //int leaf_id = 0;
+    for(int b=0; b<all_leaves.size(); b++){
+        float val=0;
+        if( edgeCount.find(b) != edgeCount.end() )
+        { 
+            Point corner_left = all_points.at(all_leaves.at(b).v[0]);
+            Point corner_right = all_points.at(all_leaves.at(b).v[2]);
+            
+            double x_dif = abs(corner_left.get_x() - corner_right.get_x());
+            double y_dif = abs(corner_left.get_y() - corner_right.get_y());
+          //  cout<<"x dif: "<<x_dif<<", y dif: "<<y_dif<<endl;
+            val = double(edgeCount[b])/x_dif / y_dif;
+
+        }
+        output<<val<<" ";
+    }
+
+    output.close();
 }
 
 #endif	/* _WRITER_H */
