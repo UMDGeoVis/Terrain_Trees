@@ -625,6 +625,8 @@ public:
     inline utype get_cmax_counter_value() { return clusterized_max; }
 };
 
+typedef pair<int, int> simplex_id; //highest_vertex_index-dim
+
 }
 
 #endif // FORMANGRADIENTVECTOR_AUX_STRUCTURE_H

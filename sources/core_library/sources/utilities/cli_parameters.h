@@ -60,10 +60,13 @@ struct cli_parameters
     int t_per_leaf;
     bool debug_mode;
     bool debug_prints_mode;
+
+    //for simplification
     bool QEM_based;
     bool contract_all_edges;
-    double maximum_limit; //for simplification
+    double maximum_limit; 
     int num_of_threads;
+    bool evaluation_mode;
 
     int num_input_entries;
     coord_type ratio;
@@ -79,6 +82,9 @@ struct cli_parameters
     int cache_size;
     coord_type persistence;
     string weights_file;
+
+    // for gradient-aware simplification validation
+    ivect new_vertex_indices;
 
     cli_parameters()
     {
@@ -108,6 +114,7 @@ struct cli_parameters
         debug_prints_mode = false;
         QEM_based = false;
         contract_all_edges = false;
+        evaluation_mode = true;
 
         num_of_threads = 1;
     }

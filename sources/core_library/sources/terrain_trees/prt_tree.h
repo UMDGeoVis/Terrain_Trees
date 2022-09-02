@@ -73,7 +73,9 @@ public:
 
     void update_tree(Node_V &n, ivect &new_v_positions,ivect &new_t_positions, bool all_deleted, itype& index_counter);
     void update_vertex_index(Node_V &n, ivect &new_v_positions, itype& index_counter);
+    void update_with_merge(Node_V &n, ivect &new_v_positions, itype& index_counter);
     void get_leaf_indexing_vertex(Node_V &n, int v_id, Node_V *&res);
+    void update_triangle_arrays(Node_V &n, Box &n_dom, int level,  ivect &new_t_positions, unordered_map<int, ivect> &tris_to_update, int label);
 
     inline void clear_leaves_list(){ this->leaves.clear();};
     void init_leaves_list(Node_V &n);
@@ -105,6 +107,8 @@ public:
      * @return int an integer containing the number of vertices indexed in a tree branch
      */
     int visit_and_unify(Node_V &n, Mesh &mesh);
+    
+    void visit(Node_V &n);
 
     void visit(Node_V &n);
 

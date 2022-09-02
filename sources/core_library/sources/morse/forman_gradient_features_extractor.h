@@ -29,6 +29,7 @@
 #include "dangling_paths_handler.h"
 #include "forman_gradient_topological_relations.h"
 #include "forman_gradient_computation.h"
+#include "boundary_matrix.h"
 
 class Forman_Gradient_Features_Extractor
 {
@@ -126,6 +127,8 @@ public:
     cout<<"saddle and maximum: "<<sad_max<<endl;
     cout<<"Level 2 arcs:"<<level2<<endl;}
     
+    void getBoundarySimplices(ivect simpl_id, int dim, vector<vector<int>>& boundary);
+
 protected:    
     /// variables neede for output purposes
     ivect segmentation;

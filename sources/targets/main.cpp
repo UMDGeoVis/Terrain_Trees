@@ -308,7 +308,7 @@ template<class T> void morse_features_extraction_and_simplification(T& tree, cli
     time.print_elapsed_time("[TIME] Initial filtering ");
 
     load_tree_lite(tree,cli);
-    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
 
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
     cout<<"[NOTA] Compute the gradient field"<<endl;
@@ -838,7 +838,7 @@ template<class T> void SF_test(T& tree, cli_parameters &cli){
 
     //WARNING AFTER THIS THE FILTRATION ARRAY IN forman_gradient AND THE POSITION INDICES OF THE VERTICES OF THE TIN WILL NOT BE ALIGNED..
     // YOU HAVE TO USE original_vertex_indices FOR FETCHING THE CORRECT FILTRATION VALUE OF A VERTEX
-    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
 
     cout<<"[NOTA] Computing the gradient field"<<endl;
     time.start();
@@ -900,7 +900,7 @@ void SF_test(PMRT_Tree& tree, cli_parameters &cli){
 
     //WARNING AFTER THIS THE FILTRATION ARRAY IN forman_gradient AND THE POSITION INDICES OF THE VERTICES OF THE TIN WILL NOT BE ALIGNED..
     // YOU HAVE TO USE original_vertex_indices FOR FETCHING THE CORRECT FILTRATION VALUE OF A VERTEX
-    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
 
     time.start();
     gradient_computation.compute_gradient_vector(forman_gradient,tree.get_root(),tree.get_mesh().get_domain(),tree.get_mesh(),tree.get_subdivision());

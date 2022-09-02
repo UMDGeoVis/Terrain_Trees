@@ -430,3 +430,103 @@ void Writer::write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& e
     }
 }
 
+void Writer::write_edge_costs_vtk(string mesh_name, Mesh &mesh,  map<pair<int, int>, coord_type>& edge_costs){
+    stringstream stream;
+    stream<<mesh_name<<"_edge_costs.vtk";
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+
+    output<< "# vtk DataFile Version 3.0"<<endl<<endl;
+    output<< "ASCII "<<endl;
+    output<< "DATASET POLYDATA"<<endl;
+
+    vector<int> new_v_pos(mesh.get_vertices_num()+1, -1);
+    int v_counter = 0;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+
+        if(!mesh.is_vertex_removed(i))
+        {
+            new_v_pos[i] = v_counter;
+            v_counter++;
+        }
+
+    }
+    output<< "POINTS "<<v_counter<<" float"<<endl;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        if(!mesh.is_vertex_removed(i))
+        {
+            Vertex& vert = mesh.get_vertex(i);
+            output<<vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_z()<<endl;
+        }
+    }
+
+
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();){
+        if(new_v_pos[it->first.first]==-1||new_v_pos[it->first.second]==-1)
+            {
+                edge_costs.erase(it++);
+     
+            }
+        else{
+            ++it;
+        }
+    }
+
+    output<< "LINES "<<edge_costs.size()<<" "<<edge_costs.size()*3<<endl;
+
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();it++){
+        output<< "2 "<< new_v_pos[it->first.first] <<" "<< new_v_pos[it->first.second] <<endl;
+    }
+
+    output<< "CELL_DATA "<<edge_costs.size()<<endl;
+    output<< "scalars cellvar float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    for(auto it = edge_costs.cbegin(); it!=edge_costs.cend();it++){
+        output<<it->second<<" ";
+    }
+
+    output<<endl;
+    
+    output<< "POINT_DATA "<<v_counter<<endl;
+    output<< "scalars pointvar float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        if(!mesh.is_vertex_removed(i))
+        {
+            Vertex& vert = mesh.get_vertex(i);
+            output<<vert.get_z()<<" ";
+        }
+    }
+    cout<<endl;
+
+}
+
+void Writer::write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,int> &pairs, vector<vector<int>>& index_to_simplex){
+    map<int, int> v_e_pairs;
+    map<int, int> e_t_pairs;
+    for(auto pair:pairs){
+        if(index_to_simplex[pair.first].size()==1){
+            v_e_pairs.insert(pair);
+        }
+        else if(index_to_simplex[pair.first].size()==2){
+            e_t_pairs.insert(pair);
+        }
+    }
+
+    stringstream file1, file2;
+    file1<<mesh_name<<"_pair_ve.txt";
+    file2<<mesh_name<<"_pair_et.txt";
+    ofstream output1(file1.str().c_str());
+    output1.unsetf( std::ios::floatfield ); // floatfield not set
+    for(auto it = v_e_pairs.cbegin(); it!=v_e_pairs.cend();it++){
+        output1<< it->first <<" "<< it->second <<endl;
+    }
+
+    ofstream output2(file2.str().c_str());
+    output2.unsetf( std::ios::floatfield ); // floatfield not set
+    for(auto it = e_t_pairs.cbegin(); it!=e_t_pairs.cend();it++){
+        output2<< it->first <<" "<< it->second <<endl;
+    }
+}
+

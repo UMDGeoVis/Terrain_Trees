@@ -4,6 +4,7 @@
 #include "contraction_simplifier.h"
 #include "morse/forman_gradient.h"
 #include "morse/forman_gradient_topological_relations.h"
+#include "utilities/string_management.h"
 
 class Gradient_Aware_Simplifier: public Contraction_Simplifier{
 
@@ -40,6 +41,12 @@ protected:
     //                                            Node_V &n, Mesh &mesh, leaf_VT &vts,boost::dynamic_bitset<>is_border_edge, LRU_Cache<int, leaf_VT> &cache, contraction_parameters &params,PRT_Tree &tree);
     void update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh, contraction_parameters &params, Forman_Gradient &gradient,  cli_parameters &cli);
 
+    inline void update_reindexed_triangle_index(ivect& t_array_before_reindex, ivect& t_array_after_reindex){
+
+        for(int i = 0; i < t_array_before_reindex.size(); i++){
+            t_array_before_reindex[i] = t_array_after_reindex[t_array_before_reindex[i]];
+        }
+    }
     
 };
 

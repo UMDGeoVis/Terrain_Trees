@@ -1,12 +1,11 @@
 #include "utilities/utility_functions.h"
-
 using namespace utility_functions;
 
 void load_tree_lite(PRT_Tree& tree, cli_parameters &cli);
 void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli);
 void load_terrain(PRT_Tree& tree, cli_parameters &cli);
 void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient);
-
+void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration);
 
 int main(int argc, char** argv)
 {
@@ -173,7 +172,7 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     stats_orig.get_index_statistics(tree,cli.reindex);
     // Writer::write_mesh_VTK("orig",tree.get_mesh());     
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
-    gradient_computation->reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation->reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
     
     cout<<"[NOTA] Computing the gradient field"<<endl;
     time.start();
@@ -181,7 +180,8 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.stop();
     time.print_elapsed_time("[TIME] computing gradient vector field ");
     cerr << "[MEMORY] peak for computing gradient vector field: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
-    delete gradient_computation;
+    if(!cli.evaluation_mode)
+        delete gradient_computation;
     ivect().swap(cli.original_vertex_indices);
 
     stringstream out2;
@@ -210,6 +210,16 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     border_checker.compute_borders(tree.get_root(),tree.get_mesh().get_domain(),0,tree.get_mesh(),tree.get_subdivision());
     time.stop();
     time.print_elapsed_time("[TIME] Border Checking: ");
+
+    if(cli.evaluation_mode){
+        cout<<"boundary matrix before the simplification"<<endl;
+        stringstream before;
+        before<<base.str();
+        before<<"_orig";
+        output_boundary_matrix(before.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());
+    }
+
+
     Gradient_Aware_Simplifier simplifier;
 
     if(cli.num_of_threads==1){
@@ -225,12 +235,23 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.start();
     simplifier.gradient_aware_simplify_parallel(tree,tree.get_mesh(),cli,forman_gradient);
     time.stop();
+
     if(cli.contract_all_edges)
         Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
 
     }
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
-    
+
+    if(cli.evaluation_mode){
+        gradient_computation->reset_filtering(tree.get_mesh(),cli.new_vertex_indices, false);
+        cout<<"Reorder the filtration"<<endl;
+        stringstream after;
+        after<<base.str();
+        after<<"_simplified";
+        output_boundary_matrix(after.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());
+    }
+ 
+
     //// A brutal-force method for checking critical simplices after the simplification. 
     //// Should be disabled in experiments
    // count_critical_simplices(tree,cli,forman_gradient);
@@ -242,9 +263,7 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
 
      Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
 
-    //  Forman_Gradient_Features_Extractor features_extractor;   
-    // features_extractor.extract_incidence_graph(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),cli.app_debug,cli.cache_size);
-    //  features_extractor.print_stats();
+
 }
 void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& gradient){
 
@@ -306,4 +325,135 @@ void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradie
 
      saddle = saddle/2;
      cout<<"min saddle max: "<<_min<<" "<<saddle<<" "<<_max<<endl;
+}
+
+void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration){
+    vector<vector<int> >        matrix;
+    map<int,int>                allpairs;
+    vector<int>                 homology;
+    Boundary_Matrix<utype>* bdmatrix = new Boundary_Matrix<utype>();
+    map<ivect, int> simplex_to_index; // first: vertices, second: new_index
+    Mesh& mesh = tree.get_mesh();
+    int global_index = 0;
+    Forman_Gradient_Features_Extractor features_extractor;   
+    features_extractor.set_filtration_vec(filtration);
+    features_extractor.extract_incidence_graph(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),cli.app_debug,cli.cache_size);
+    IG ig = features_extractor.get_incidence_graph();
+    map<itype, nNode*>& minima = ig.getMinima();
+    for(map<itype, nNode*>::iterator it=minima.begin(); it!=minima.end(); ++it)
+    {
+        nNode* node = it->second;
+        ivect v = {node->get_critical_index()};
+        if(simplex_to_index[v]!=0){
+            cerr<<"Should not happen, the highest index way cannot work"<<endl;
+           // return;
+        }
+        simplex_to_index[v]=global_index++;
+
+        bdmatrix->addValue(simplex_to_index[v], -1, filtration[node->get_critical_index()-1]);
+    }
+
+
+    map<pair<itype,itype>, iNode*>& saddle = ig.getSaddles();
+    for(map<pair<itype,itype>, iNode*>::iterator it=saddle.begin(); it!=saddle.end(); ++it)
+    {
+        iNode* node = it->second;
+        //itype sad_vertex = node->get_critical_index();
+        
+
+        vector<ivect> boundary;
+        vector<int> et = {it->first.first, it->first.second};
+
+
+        if(simplex_to_index[et]!=0){
+
+            cerr<<"Should not happen, the highest index way cannot work"<<endl;
+            //return;
+        }
+        simplex_to_index[et]=global_index++;
+
+        features_extractor.getBoundarySimplices(et, 1, boundary);
+
+        
+        utype max_filt=0;
+        if(et[1]<0){
+            ivect edge;
+            mesh.get_triangle(et[0]).TE(-(et[1]+1), edge);
+            max_filt = max(filtration[edge[0]-1], filtration[edge[1]-1]);
+        }
+        else{
+            map<int, int> v_count;
+            for(int i=0; i<3; i++){
+                for(int t = 0; t < 2; t++){
+                        v_count[mesh.get_triangle(et[t]).TV(i)]++;
+                }
+            }
+            for(auto v:v_count){
+                if(v.second==2){
+                    max_filt=max(max_filt, filtration[v.first-1]);
+                }
+            }
+        }
+
+        if(boundary.size() == 0){
+            bdmatrix->addValue(simplex_to_index[et],-1,max_filt);
+        }
+        else{
+            for(auto s : boundary){
+
+                bdmatrix->addValue(simplex_to_index[et], simplex_to_index[s],max_filt);
+            }
+        }
+    }
+
+    map<itype, nNode*>& maxima = ig.getMaxima();
+    for(map<itype, nNode*>::iterator it=maxima.begin(); it!=maxima.end(); ++it)
+    {
+        nNode* node = it->second;
+        ivect tri;
+        mesh.get_triangle(node->get_critical_index()).convert_to_vec(tri);
+
+
+        if(simplex_to_index[tri]!=0){
+
+            cerr<<"Should not happen, the highest index way cannot work"<<endl;
+            //return;
+        }
+        simplex_to_index[tri]=global_index++;
+
+        vector<int> tid = {node->get_critical_index()};
+        vector<ivect> boundary;
+        features_extractor.getBoundarySimplices(tid, 2, boundary);
+        Triangle t = mesh.get_triangle(tid[0]);
+        utype max_filt = 0;
+        for(int i = 0; i<3; i++){
+            max_filt = max(max_filt, filtration[t.TV(i)-1]);
+        }
+
+        if(boundary.size() == 0){
+            bdmatrix->addValue(simplex_to_index[tri],-1,max_filt);
+        }
+        else{
+            for(auto s : boundary){
+
+                bdmatrix->addValue(simplex_to_index[tri], simplex_to_index[s],max_filt);
+            }
+        }
+    }
+
+    cout<<"update bdmatrix"<<endl;
+    vector<vector<int>> index_to_simplex = vector<vector<int>>(global_index);
+    for(auto p : simplex_to_index)
+        index_to_simplex[p.second] = p.first;
+
+
+    bdmatrix->sort();
+    bdmatrix->reduce();
+    bdmatrix->getMatrix(matrix);
+    bdmatrix->getPairs(allpairs);
+    bdmatrix->getHomology(homology);
+
+    
+    Writer::write_boundary_matrix_pair(mesh_name, mesh, allpairs, index_to_simplex);
+    //  features_extractor.print_stats();
 }

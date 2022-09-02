@@ -396,6 +396,47 @@ void PRT_Tree::update_vertex_index(Node_V &n, ivect &new_v_positions, itype& ind
 }
 
 
+void PRT_Tree::update_with_merge(Node_V &n, ivect &new_v_positions, itype& index_counter)
+{
+    if (n.is_leaf())
+    {
+        n.update_vertex_indices(new_v_positions, index_counter);
+
+    }
+    else
+    {
+        itype start = index_counter;
+
+        for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it)
+        {
+            if(*it != NULL)
+                this->update_with_merge(**it,new_v_positions,index_counter);
+        }
+        itype end = index_counter;
+        if((end-start)<= this->vertices_threshold){
+            ivect triangle_list;
+
+            // simply merge the triangle lists here. 
+            // It does NOT check the duplicates and the update of triangle indexes
+            for(Node_V::child_iterator it=n.begin(); it!=n.end(); ++it){
+                if((*it)->get_t_array_size()!=0){
+                    triangle_list.reserve(triangle_list.size()+(*it)->get_t_array_size());
+                    triangle_list.insert(triangle_list.end(), 
+                    std::make_move_iterator((*it)->get_t_array_begin()), std::make_move_iterator((*it)->get_t_array_end()));
+                }
+
+            }
+
+            n.delete_sons();
+            n.set_t_array(triangle_list); 
+            vector<int>().swap(triangle_list);
+
+        }
+        n.clear_v_array();
+        if(end-start>0)
+            n.set_v_range(start,end);
+    }
+}
 
 void PRT_Tree::get_leaf_indexing_vertex(Node_V &n, int v_id, Node_V *&res)
 {
@@ -493,8 +534,87 @@ void PRT_Tree::add_triangle_new(Node_V& n, Box& domain, int level, itype t)
 }
 
 
+void PRT_Tree::update_triangle_arrays(Node_V &n, Box &n_dom, int level,  ivect &new_t_positions, unordered_map<int, ivect> &tris_to_update, int label){
+    // toUpdate: each record in the HashMap forms by a triangle index, and a list of node labels.
+    // label: the child label of the current node. It can be 0, 1, 2, or 3.
+    if (n.is_leaf())
+    {
+        iset t_list;
+
+        for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+        {
+            RunIterator const& orig_id = itPair.first;
+            bool keep = true;
+            int tid = *orig_id;
+            if(new_t_positions[*orig_id-1] == -1) // the triangle was deleted
+            {
+                continue;
+            }
+            else{
+                tid = new_t_positions[*orig_id-1];              
+            }
+            int count = n.index_tri_ver_num(this->mesh.get_triangle(tid));
+            if(count != 3)
+            {
+                tris_to_update[tid].push_back(label);
+            }
+            if(count == 0 && !Geometry_Wrapper::triangle_in_box_build(tid, n_dom, this->mesh)){
+                continue;
+            }
+            t_list.insert(tid);
+
+        }
+
+        ivect t_vec(t_list.begin(), t_list.end());
+        n.clear_t_array();
+        n.set_t_array(t_vec);
+        // cout<<n<<endl;
+        // for(auto t:t_vec){
+        //     cout<<t<<", ";
+        // }
+        // cout<<endl;
+        // cout<<"leave this node"<<endl;
+    }
+    else
+    {
+        unordered_map<int, ivect> local_toUpdate;
+        for(int i=0; i<this->get_subdivision().son_number(); i++){
+            Box son_dom = this->subdivision.compute_domain(n_dom,level,i);
+            int son_level = level +1;
+            update_triangle_arrays(*n.get_son(i),son_dom, son_level, new_t_positions,local_toUpdate, i);
+        }
+
+        for(auto tri_to_check : local_toUpdate){
+            int tid = tri_to_check.first;
+            int count = n.index_tri_ver_num(this->mesh.get_triangle(tid));
+            if (count != 3){
+                tris_to_update[tid].push_back(label);
+            }
+            ivect& nids = tri_to_check.second;
+            for(int i = 0; i < 4; i++){
+                if(find(nids.begin(), nids.end(), i) == nids.end())
+                {
+
+                    // it is possible that a triangle passed by a node (intersect before simplification, but does not intersect after it) 
+                    // is fully contained by one of its sibling. Then its sibling will not pass this triangle  
+                    // but if the triangle is inserted to that sibling, it will be repeated
+                    if(n.get_son(i)->indexes_triangle_vertices(mesh.get_triangle(tid)))
+                        continue;
+                    
+                    Box son_dom = this->subdivision.compute_domain(n_dom,level,i);
+                    int son_level = level +1;
+                    add_triangle_new(*n.get_son(i), son_dom, son_level, tid);
+
+                }
+            }
+        }
+    }
+
+}
+
 void PRT_Tree::visit(Node_V& n){
     if(n.is_leaf()){
+        sort(n.get_t_array_begin(), n.get_t_array_end());
         cout<<n<<endl;
         for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
         {

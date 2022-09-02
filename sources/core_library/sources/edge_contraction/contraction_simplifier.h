@@ -152,10 +152,11 @@ protected:
     void check_delaunay_triangle(bool& is_delaunay, Point& center, coord_type radius, Node_V &n, Mesh &mesh,  Box &n_dom, int level, Spatial_Subdivision &division);
     vector<Matrix> initialQuadric;
     vector<dvect> trianglePlane;
-
+    // each pair is a pair of [cost, node-id]
     vector<pair<coord_type, int>> contracted_costs;
     vector<pair<coord_type, int>> skipped_costs;
 
+    map<pair<int,int>, coord_type> edge_costs_output;
     vector<omp_lock_t> t_locks;
     vector<omp_lock_t> v_locks;
     vector<omp_lock_t> l_locks;

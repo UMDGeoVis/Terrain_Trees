@@ -117,6 +117,19 @@ public:
         return false;
     }
 
+    inline int index_tri_ver_num(Triangle& t){
+        if(!this->indexes_vertices())
+            return 0;
+        int count = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            if (this->indexes_vertex(t.TV(i)))
+            {
+                count++;
+            }
+        }
+        return count;
+    }
 
     // inline bool completely_indexes_edge_vertices(Triangle &t)
     // {
@@ -310,6 +323,8 @@ public:
      * @param new_t_list an integer vector containing the updated array
      */
     void compress_triangle_array(ivect &new_t_list);
+
+
 
     /////NOTE: this functions is supposed to be used for the simplification only. 
 

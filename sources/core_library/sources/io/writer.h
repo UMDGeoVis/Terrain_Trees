@@ -124,7 +124,13 @@ public:
 
     static void write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& edge_costs);
 
-   template<class N, class D> static void write_edge_cost_distribution(N& root,D& division, string file_name, Mesh &mesh, string& csv_path);
+
+    template<class N, class D> static void write_edge_cost_distribution(N& root,D& division, string file_name, Mesh &mesh, string& csv_path);
+
+    static void write_edge_costs_vtk(string mesh_name, Mesh &mesh, map<pair<int, int>, coord_type>& edge_costs);
+
+    static void write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,int> &pairs, vector<vector<int>>& index_to_simplex);
+
 protected:
     ///A constructor method
     Writer() {}
@@ -354,6 +360,7 @@ template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D 
 
     output.close();
 }
+
 
 #endif	/* _WRITER_H */
 

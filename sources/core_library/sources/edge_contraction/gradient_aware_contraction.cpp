@@ -119,6 +119,9 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     int simplification_round;
     int round = 1;
 
+    if(cli.evaluation_mode)
+        params.calc_stats();
+
     time.start();
     cout << "Number of threads used in the simplification:" << omp_get_max_threads() << endl;
     // const int t_num = mesh.get_triangles_num();
@@ -168,6 +171,8 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
         //  vector<dvect>().swap(trianglePlane);
         cerr << "[MEMORY] peak for computing QEM: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
     }
+    stringstream base;
+    base << string_management::get_path_without_file_extension(cli.mesh_path);
     time.start();
     while (1)
     {
@@ -201,6 +206,13 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
         // time.start();
         // cout<<"number of remaining triangles: "<<tree.get_mesh().get_triangles_num()<<endl;
 
+        if(params.output_stats()){
+                stringstream out;
+
+                Writer::write_edge_costs_vtk(base.str()+"_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
+                this->edge_costs_output.clear();
+        }
+
         if (simplification_round == params.get_contracted_edges_num())
             break;
         Contraction_Simplifier::preprocess(tree, mesh, cli);
@@ -210,9 +222,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     //     for (int i = 0; i < t_num; i++)
     //         omp_destroy_lock(&(t_locks[i]));
 
-    // #pragma omp parallel for
-    //     for (int i = 0; i < v_num; i++)
-    //         omp_destroy_lock(&(v_locks[i]));
+
     if (params.is_parallel())
     {
     #pragma omp parallel for
@@ -584,7 +594,7 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
     itype t3_sin = -1;
     bool v2_is_critical = true;
 
-    // boost::dynamic_bitset<> edge_is_critical(vt2.size(),true);
+    // map<int, bool> edge_is_critical;
     map<int, ivect> ets;
     for (int i = 0; i < vt2.size(); i++)
     {
@@ -829,9 +839,16 @@ bool Gradient_Aware_Simplifier::valid_gradient_configuration(int v1, int v2, VT 
 
 void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Subdivision &division, contraction_parameters &params, PRT_Tree &tree, Forman_Gradient &gradient)
 {
-    //boost::dynamic_bitset<> conflict_nodes(tree.get_leaves_number());
+
+    // ***Node status*** 
+    // 0: default
+    // 1: conflict, should be switched to 0 after the current node is finished
+    // 2: being processed
+    // 3: finished
+    // -1: conflict and finished, should be switched to 3 after the current node is finished
+
+
     ivect nodes_status(tree.get_leaves_number(), 0);
-    //cout<<"total leaf node number: "<<tree.get_leaves_number()<<endl;
     int processed_node = 0;
     bool processed = false;
     do
@@ -866,24 +883,22 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                 // else we set the conflict nodes of leaf[i] to be 1 in nodes_status
                 else
                 {
+                    // set nodes_status[i]=2 when current node is being processed
                     nodes_status[i] = 2;
                     omp_unset_lock(&(l_locks[i]));
                     iset conflicts = conflict_leafs[i];
                     // Check if the conflict nodes were set to 1 already
-                    // bool shared_conflicts = false;
                     bool cannot_process = false;
                     for (iset_iter it = conflicts.begin(); it != conflicts.end(); it++)
                     {
                         // cout<<"set leaf node:"<<*it<<" on thread "<<omp_get_thread_num()<<endl;
                         omp_set_lock(&(l_locks[*it])); // leafs should be locked when being checked and updated.
                         int status = 0;
-                        //   #pragma omp atomic read
                         status = nodes_status[*it];
                         if (abs(status) == 1 || status == 2) //it is conflicted with another node being processed
                         {
                             // cout<<"conflict node id:"<<*it<<" with "<<i<<" on thread "<<omp_get_thread_num()<<endl;
                             omp_unset_lock(&(l_locks[*it]));
-                            //it++; No need, the current one should not be change to 0
                             for (iset_iter it2 = conflicts.begin(); it2 != it; it2++)
                             {
                                 //     cout<<"unset leaf node:"<<*it2<<" on thread "<<omp_get_thread_num()<<endl;
@@ -894,11 +909,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                                     nodes_status[*it2] = 3;
                                 omp_unset_lock(&(l_locks[*it2]));
                             }
-                            //omp_unset_lock(&(l_locks[*it]));
-                            // unset the locks that have been set
-                            cannot_process = true;
-                            //cout<<"neighbor conflict"<<endl;
 
+                            cannot_process = true;
                             break;
                         }
                         else if (status == 0)
@@ -920,9 +932,8 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
                     }
 
                     omp_set_lock(&(l_locks[i]));
-                    // // set nodes_status[i]=2 when node is being processed
-                    // nodes_status[i] = 2;
-                    // omp_unset_lock(&(l_locks[i]));
+                    
+
                     // #pragma omp critical
                     // {
                     //     cout<<"process leaf node:"<<i<<" on thread "<<omp_get_thread_num()<<endl;
@@ -971,10 +982,7 @@ void Gradient_Aware_Simplifier::simplify_compute_parallel(Mesh &mesh, Spatial_Su
             }
             else
             {
-
                 processed_node = processed_node + 1;
-                //  processed = true;
-                // cout << "Start simplification" << endl;
                 if (params.is_QEM() == true)
                     simplify_leaf_cross_QEM(*leaf, i, mesh, params, tree, gradient);
                 else
@@ -1009,19 +1017,11 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
 
     // Create a priority queue of candidate edges
     edge_queue edges;
-    // if (params.is_parallel())
-    // {
-    //     find_candidate_edges_parallel(n, mesh, local_vts, edges, params, true);
-    // }
-    // else
-
     find_candidate_edges(n, mesh, local_vts, edges, params);
     map<vector<int>, double> updated_edges;
     int edge_num = edges.size();
     int edges_contracted_leaf = 0;
 
-    // cout<<"Number of threads used: "<<omp_get_num_threads()<<endl;
-    // cout<<"Current thread id: "<<omp_get_thread_num()<<endl;
 
     params.add_edge_queue_size(edges.size());
     map<int, leaf_VT> local_cache;
@@ -1114,7 +1114,6 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
 
-    //cout<<"Simplification in leaf."<<endl;
     boost::dynamic_bitset<> is_v_border(v_end - v_start);
     leaf_VT local_vts(v_range, VT());
     n.get_VT_and_border(local_vts, is_v_border, mesh);
@@ -1169,12 +1168,11 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
 
         VV vv_locks;
         if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
-        {
-            //if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh))
-            if(valid_boundary_condition(e[0],e[1],*vt0,*vt1,et,v1_is_border,v2_is_border,mesh))
-            {
+        { 
+            //if(valid_boundary_condition(e[0],e[1],*vt0,*vt1,et,v1_is_border,v2_is_border,mesh)){
+            if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
-                edges_contracted_leaf++;
+                
                 // break;
                 leaf_contract_costs.push_back(make_pair(current->val, n_id));
 
@@ -1249,35 +1247,43 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     /// NEW: the update_and_compact procedure check internally if we have removed all the top d-simplices
     bool all_deleted = mu.update_and_clean_triangles_arrays(mesh, new_v_positions, new_t_positions, params.get_counter());
 
-    gradient.reorder_forman_gradient(mesh, new_t_positions);
+
 
     // time.stop();
     // time.print_elapsed_time("[TIME] Compact and update mesh: ");
     // cerr << "[MEMORY] peak for compacting and updating the mesh: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 
-
-    // cerr<<"------------"<<endl;
-
-     
     //    cerr<<"[TREE] update indices in the tree"<<endl;
     ///TODO: Check triangle intersection before updating the tree.
     int index_counter = 1;
     time.start();
     cerr<<"[TREE] Update vertex index and remove unnecessary splitting"<<endl;
     
-    tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
+    //tree.update_vertex_index(tree.get_root(), new_v_positions, index_counter);
 
+    tree.update_with_merge(tree.get_root(), new_v_positions, index_counter);
     // below step has been merged to the
     // tree.visit_and_unify(tree.get_root(),tree.get_mesh());
     time.stop();
     time.print_elapsed_time("[TIME] Update tree structure (merging blocks): ");
 
+    // save the new vertex indexes for filtration update
+    cli.new_vertex_indices = new_v_positions;
+
+    unordered_map<int, ivect> tris_to_update;
     time.start();
-    tree.reinsert_triangles();
+    
+    //// Solution 1: update triangle arrays
+    tree.update_triangle_arrays(tree.get_root(), tree.get_mesh().get_domain(), 0, new_t_positions, tris_to_update, 0);
+    
+    //// Solution 2: reinsert all triangles again
+    // tree.reinsert_triangles();
     time.stop();
     time.print_elapsed_time("[TIME] Update tree (triangles): ");
     // cerr << "[MEMORY] peak for updating the tree (top-simplices): " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
    // tree.visit(tree.get_root());
+
+    //tree.visit(tree.get_root());
 
     Statistics stats;
    
@@ -1291,11 +1297,26 @@ void Gradient_Aware_Simplifier::update_mesh_and_tree(PRT_Tree &tree, Mesh &mesh,
     Reindexer reindexer = Reindexer();
     // reindexer.reindex_tree_and_mesh(tree,true,cli.original_vertex_indices,
     //                                     false,cli.original_triangle_indices);
-    reindexer.reindex_triangle_array(tree, false, cli.original_triangle_indices);
+    reindexer.reindex_triangle_array(tree, true, cli.original_triangle_indices);
     time.stop();
     time.print_elapsed_time("[TIME] Time for reindexing after simplification");
     Statistics stats_new;
     stats_new.get_index_statistics(tree,cli.reindex);
 
+    map<int, int> reindexed_t_pos_map;
+    for(int i = 0; i < cli.original_triangle_indices.size(); i++){
+        reindexed_t_pos_map[cli.original_triangle_indices[i]] = i;
+    }
+
+    ivect().swap(cli.original_triangle_indices);
+
+    for(int i = 0; i < new_t_positions.size(); i++){
+        if(new_t_positions[i] != -1){
+            new_t_positions[i] = reindexed_t_pos_map[new_t_positions[i]];
+        }
+    }
+    gradient.reorder_forman_gradient(mesh, new_t_positions);
+    
+    // cout<<"finished"<<endl;
     //cerr << "[RAM peak] for updating the mesh and the tree: " << to_string(MemoryUsage().getValue_in_MB(false)) << " Mbs" << std::endl;
 }

@@ -44,7 +44,9 @@ public:
     void initial_filtering(Mesh &mesh);
     void initial_filtering_IA(Mesh &mesh);
     inline uvect get_filtration(){return this->filtration;}
-    void reset_filtering(Mesh &mesh,ivect& original_vertex_indices);
+    
+    // update the filtration after building the tree since now the vertices are reindexed. 
+    void reset_filtering(Mesh &mesh,ivect& original_vertex_indices, bool new_to_old);
     inline map<short,ivect_set>& get_critical_simplices() { return this->critical_simplices; }
     //TODO: add a function to count all critical simplices in the current mesh. 
     //To be used after simplification. 

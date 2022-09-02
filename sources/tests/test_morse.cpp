@@ -155,7 +155,7 @@ template<class T> void morse_features_extraction(T& tree, cli_parameters &cli)
 
     //WARNING AFTER THIS THE FILTRATION ARRAY IN forman_gradient AND THE POSITION INDICES OF THE VERTICES OF THE TIN WILL NOT BE ALIGNED..
     // YOU HAVE TO USE original_vertex_indices FOR FETCHING THE CORRECT FILTRATION VALUE OF A VERTEX
-    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
+    gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices, true);
 
 
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
