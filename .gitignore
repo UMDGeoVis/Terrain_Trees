@@ -4,6 +4,8 @@
 /doc/img/
 /doc/readme/
 /sources/*.directory
+/output/
+
 
 *.pro
 *.user

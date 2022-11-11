@@ -502,17 +502,7 @@ void Writer::write_edge_costs_vtk(string mesh_name, Mesh &mesh,  map<pair<int, i
 
 }
 
-void Writer::write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,int> &pairs, vector<vector<int>>& index_to_simplex){
-    map<int, int> v_e_pairs;
-    map<int, int> e_t_pairs;
-    for(auto pair:pairs){
-        if(index_to_simplex[pair.first].size()==1){
-            v_e_pairs.insert(pair);
-        }
-        else if(index_to_simplex[pair.first].size()==2){
-            e_t_pairs.insert(pair);
-        }
-    }
+void Writer::write_boundary_matrix_pair(string mesh_name, Mesh &mesh, vector<pair<coord_type, coord_type>> &v_e_pairs, vector<pair<coord_type, coord_type>> &e_t_pairs){
 
     stringstream file1, file2;
     file1<<mesh_name<<"_pair_ve.txt";
@@ -530,3 +520,16 @@ void Writer::write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,in
     }
 }
 
+void Writer::write_vector(string file_name, dvect& input)
+{
+    stringstream file;
+    file << file_name << ".txt";
+    ofstream output(file.str().c_str());
+
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+    for(auto it = input.begin(); it != input.end(); it++)
+    {
+        output << *it <<endl;
+    }
+}

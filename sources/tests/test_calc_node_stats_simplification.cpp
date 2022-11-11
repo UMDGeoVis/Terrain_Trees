@@ -4,7 +4,7 @@ using namespace utility_functions;
 
 void load_tree(PRT_Tree& tree, cli_parameters &cli);
 void calc_stats(PRT_Tree& tree, cli_parameters &cli, Mesh &mesh, string& csv_path);
-
+void count_vertices(PRT_Tree& tree, cli_parameters &cli, vector<int>& count_per_leaf);
 
 
 int main(int argc, char** argv)
@@ -23,21 +23,32 @@ int main(int argc, char** argv)
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     load_tree(ptree,cli);
 
+    ptree.init_leaves_list(ptree.get_root()); 
 
+    stringstream output_name;
     if(strcmp(argv[3], "-d") == 0){
+
+        cout<<"number of leaves: "<<ptree.get_leaves_number()<<endl;
+        
+        vector<int> v_per_leaf(ptree.get_leaves_number(), 0);
+        count_vertices(ptree, cli, v_per_leaf);
         string csv_path = argv[4];
-        stringstream output_name;
+        cout<<"Finished preparation"<<endl;
         output_name << get_path_without_file_extension(cli.mesh_path);
         output_name << "_edge_distribution.vtk";
-        Writer::write_edge_cost_distribution(ptree.get_root(), ptree.get_subdivision(), output_name.str(), ptree.get_mesh(), csv_path);
+        Writer::write_edge_cost_distribution(ptree.get_root(), ptree.get_subdivision(), output_name.str(), ptree.get_mesh(), csv_path, v_per_leaf);
     }
     else if(strcmp(argv[3], "-s") == 0){
         cout<<"[NOTA]Checking Delaunay property"<<endl;
-        ptree.init_leaves_list(ptree.get_root()); 
+        
         Contraction_Simplifier simplifier;
         simplifier.check_delaunay(ptree, ptree.get_mesh());
         cout<<"[NOTA]Compute compactness"<<endl;
-        simplifier.compute_compactness(ptree, ptree.get_mesh());
+        dvect shape_values(ptree.get_mesh().get_triangles_num(), 0);
+        output_name << get_path_without_file_extension(cli.mesh_path);
+        output_name << "_shape_distribution";
+        simplifier.compute_compactness(ptree, ptree.get_mesh(), shape_values);
+        Writer::write_vector(output_name.str(), shape_values);
     }
 
     return (EXIT_SUCCESS);
@@ -117,3 +128,19 @@ void load_tree(PRT_Tree& tree, cli_parameters &cli)
 }  
 
 
+void count_vertices(PRT_Tree& tree, cli_parameters &cli, vector<int>& count_per_leaf)
+{
+    cout<<"Start counting" << endl;
+    #pragma omp parallel for
+    for(int i = 0; i < tree.get_leaves_number(); i++)
+    {
+        if(!tree.get_leaf(i)->indexes_vertices())
+            continue;
+        itype v_start = tree.get_leaf(i)->get_v_start();
+        itype v_end = tree.get_leaf(i)->get_v_end();
+        itype v_range = v_end - v_start;
+
+        count_per_leaf[i] = v_range;
+    }
+
+}

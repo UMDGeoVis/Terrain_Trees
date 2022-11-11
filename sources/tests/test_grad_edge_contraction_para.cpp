@@ -6,6 +6,53 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli);
 void load_terrain(PRT_Tree& tree, cli_parameters &cli);
 void count_critical_simplices(PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient);
 void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cli, Forman_Gradient& forman_gradient, uvect filtration);
+double simplex_elevation(const ivect &simpl, Mesh& mesh)
+{
+    double elevation;
+    bool elevation_set = false;
+    if(simpl.size() == 2)
+    {
+        if(simpl[1]<0){
+            ivect edge;
+            mesh.get_triangle(simpl[0]).TE(-(simpl[1]+1), edge);
+            elevation = max(mesh.get_vertex(edge[0]).get_z(), mesh.get_vertex(edge[1]).get_z());
+        }
+        else{
+            map<int, int> v_count;
+            for(int i=0; i<3; i++){
+                for(int t = 0; t < 2; t++){
+                        v_count[mesh.get_triangle(simpl[t]).TV(i)]++;
+                }
+            }
+            
+            for(auto v:v_count){
+                if(v.second==2){
+                    if(!elevation_set)
+                       { 
+                        elevation = mesh.get_vertex(v.first).get_z();
+                        elevation_set = true;
+                       }
+                    else
+                        elevation=max(elevation, mesh.get_vertex(v.first).get_z());
+                }
+            }
+        }
+    }
+    else
+    {
+        for(auto v : simpl)
+        {
+            if(!elevation_set)
+                elevation = mesh.get_vertex(v).get_z();
+            else if(mesh.get_vertex(v).get_z() > elevation)
+                elevation = mesh.get_vertex(v).get_z();
+        }
+
+    }
+
+    return elevation;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -20,7 +67,6 @@ int main(int argc, char** argv)
 	cli.division_type = QUAD;
     cli.crit_type = "pr";
     cli.v_per_leaf = atoi(argv[2]);
-
     if(atoi(argv[4])==-1){
         cli.contract_all_edges = true;
     }
@@ -28,15 +74,18 @@ int main(int argc, char** argv)
     cli.maximum_limit=atof(argv[4]);
     cout<<"Number of available threads:"<<omp_get_max_threads()<<endl;
     if(atoi(argv[5])==-1){
-      cli.num_of_threads = omp_get_max_threads();
+        cli.num_of_threads = omp_get_max_threads();
     }
      else{
-    cli.num_of_threads =atoi(argv[5]);
-    omp_set_num_threads(cli.num_of_threads);
+        cli.num_of_threads =atoi(argv[5]);
+        omp_set_num_threads(cli.num_of_threads);
+    }
+
     //// TO check if the parallel version works the same as the sequential one:
     //// We can set the number of threads to be 1. 
     // omp_set_num_threads(1);
-    }
+
+    cli.evaluation_mode = true;
 
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cli.app_debug=OUTPUT;
@@ -147,7 +196,7 @@ void load_tree_lite(PRT_Tree& tree, cli_parameters &cli)
 }
 
 void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
-
+    bool normal_simplification = false; // Set to true only when the simplification is not gradient-aware
     stringstream out;
     stringstream base;
     base << get_path_without_file_extension(cli.mesh_path);
@@ -235,20 +284,35 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.start();
     simplifier.gradient_aware_simplify_parallel(tree,tree.get_mesh(),cli,forman_gradient);
     time.stop();
-
-    if(cli.contract_all_edges)
-        Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
-
+    // if(cli.contract_all_edges)
+    //     Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
     }
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
 
     if(cli.evaluation_mode){
         gradient_computation->reset_filtering(tree.get_mesh(),cli.new_vertex_indices, false);
         cout<<"Reorder the filtration"<<endl;
-        stringstream after;
-        after<<base.str();
-        after<<"_simplified";
-        output_boundary_matrix(after.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());
+        if(normal_simplification) 
+        {
+            Forman_Gradient new_forman_gradient = Forman_Gradient(tree.get_mesh().get_triangles_num());
+            out<<"[NOTA] Computing the gradient field after the simplification"<<endl;
+            time.start();
+            gradient_computation->compute_gradient_vector(new_forman_gradient,tree.get_root(),tree.get_mesh(),tree.get_subdivision());
+            time.stop();
+            time.print_elapsed_time("[TIME] computing gradient vector field ");
+            stringstream after;
+            after<<base.str();
+            after<<"_simplified";
+            output_boundary_matrix(after.str(), tree, cli, new_forman_gradient, gradient_computation->get_filtration());         
+        }
+        else
+        {
+            stringstream after;
+            after<<base.str();
+            after<<"_simplified";
+            output_boundary_matrix(after.str(), tree, cli, forman_gradient, gradient_computation->get_filtration());                   
+        }
+
     }
  
 
@@ -257,11 +321,8 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
    // count_critical_simplices(tree,cli,forman_gradient);
 
     // cout<<output_name<<endl;
-
-
-     //Writer::write_mesh_VTK("simplified",tree.get_mesh()); 
-
-     Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
+    //  Writer::write_mesh_VTK("simplified",tree.get_mesh()); 
+    // Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
 
 
 }
@@ -454,6 +515,25 @@ void output_boundary_matrix(string mesh_name, PRT_Tree& tree, cli_parameters &cl
     bdmatrix->getHomology(homology);
 
     
-    Writer::write_boundary_matrix_pair(mesh_name, mesh, allpairs, index_to_simplex);
+    vector<pair<coord_type, coord_type>> v_e_pairs;
+    vector<pair<coord_type, coord_type>> e_t_pairs;
+    // cout<<"Filtration vector size:"<<filtration.size()<<endl;
+    for(auto pair:allpairs){
+        double first_filt = simplex_elevation(index_to_simplex[pair.first],mesh);
+        double second_filt = simplex_elevation(index_to_simplex[pair.second], mesh);
+        if(index_to_simplex[pair.first].size()==1){
+            
+            v_e_pairs.push_back(make_pair(first_filt, second_filt));
+            
+        }
+        else if(index_to_simplex[pair.first].size()==2){
+            e_t_pairs.push_back(make_pair(first_filt, second_filt));
+        }
+    }
+
+    Writer::write_boundary_matrix_pair(mesh_name, mesh, v_e_pairs, e_t_pairs);
+    vector<pair<coord_type, coord_type>>().swap(v_e_pairs);
+    vector<pair<coord_type, coord_type>>().swap(e_t_pairs);
     //  features_extractor.print_stats();
 }
+
