@@ -1057,7 +1057,12 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
             {
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
                 edges_contracted_leaf++;
-                leaf_contract_costs.push_back(make_pair(current->val, n_id));
+
+                if(params.output_stats())
+                {
+                    leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                }
+                
                 int nodeToUpdate = v_in_leaf[e[0]];
                 if (params.is_parallel())
                 {
@@ -1092,13 +1097,15 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
         // }
         delete current;
     }
-    #pragma omp critical
+    if(params.output_stats())
     {
-    //    skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
-   //                   std::make_move_iterator(leaf_skipped_costs.end()));
-        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
-                      std::make_move_iterator(leaf_contract_costs.end()));
+        #pragma omp critical
+        {
+            contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                        std::make_move_iterator(leaf_contract_costs.end()));
+        }
     }
+
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }
@@ -1174,7 +1181,11 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
                 
                 // break;
-                leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                if(params.output_stats())
+                {
+                    leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                }
+                
 
                 int nodeToUpdate = v_in_leaf[e[0]];
 
@@ -1201,13 +1212,17 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     }
 
 
-    #pragma omp critical
+    if(params.output_stats())
     {
-       // skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
-        //              std::make_move_iterator(leaf_skipped_costs.end()));
-        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
-                      std::make_move_iterator(leaf_contract_costs.end()));
+            #pragma omp critical
+        {
+        // skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
+            //              std::make_move_iterator(leaf_skipped_costs.end()));
+            contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                        std::make_move_iterator(leaf_contract_costs.end()));
+        }
     }
+
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }

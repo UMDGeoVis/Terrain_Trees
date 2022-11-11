@@ -12,6 +12,7 @@ int main(int argc, char** argv)
 	cli_parameters cli;
 	cli.mesh_path = argv[1];
 	cli.debug_mode = false;
+    cli.evaluation_mode = false;
 	cerr<<"[OBJECTIVE] this unit-test generates a PR-quadtree on the input TIN dataset "
 	    <<"then, it simplifies the triangle mesh with an edge contraction operator following a length criteria."<<endl;
 		
@@ -236,7 +237,7 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     simplifier.gradient_aware_simplify_parallel(tree,tree.get_mesh(),cli,forman_gradient);
     time.stop();
 
-    if(cli.contract_all_edges)
+    if(cli.contract_all_edges && cli.evaluation_mode)
         Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
 
     }
@@ -261,7 +262,7 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
 
      //Writer::write_mesh_VTK("simplified",tree.get_mesh()); 
 
-     Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
+    Writer::write_mesh(output_name,"grad",tree.get_mesh(),false); 
 
 
 }
