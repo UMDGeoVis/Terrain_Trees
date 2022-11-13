@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	cli_parameters cli;
 	cli.mesh_path = argv[1];
 	cli.debug_mode = false;
-    cli.evaluation_mode = false;
+    cli.evaluation_mode = true;
 	cerr<<"[OBJECTIVE] this unit-test generates a PR-quadtree on the input TIN dataset "
 	    <<"then, it simplifies the triangle mesh with an edge contraction operator following a length criteria."<<endl;
 		
@@ -85,8 +85,6 @@ int main(int argc, char** argv)
     //// TO check if the parallel version works the same as the sequential one:
     //// We can set the number of threads to be 1. 
     // omp_set_num_threads(1);
-
-    cli.evaluation_mode = true;
 
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cli.app_debug=OUTPUT;
@@ -197,7 +195,7 @@ void load_tree_lite(PRT_Tree& tree, cli_parameters &cli)
 }
 
 void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
-    bool normal_simplification = false; // Set to true only when the simplification is not gradient-aware
+    bool normal_simplification = true; // Set to true only when the simplification is not gradient-aware
     stringstream out;
     stringstream base;
     base << get_path_without_file_extension(cli.mesh_path);
@@ -287,8 +285,8 @@ void gradient_aware_simplification(PRT_Tree& tree, cli_parameters &cli){
     time.stop();
 
 
-    if(cli.contract_all_edges && cli.evaluation_mode)
-        Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
+    // if(cli.contract_all_edges && cli.evaluation_mode)
+      //  Writer::write_edge_costs(output_name+"_costs", simplifier.get_edge_costs(true));
     }
     
     time.print_elapsed_time("[TIME] Gradient-aware simplification ");
