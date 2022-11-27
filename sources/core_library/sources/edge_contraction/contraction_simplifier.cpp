@@ -2785,14 +2785,20 @@ void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh, dve
         }
 
     coord_type max=-1, min = 1.1, avg=0;
+    int count_75 = 0, count_90 = 0;
     for(int i=0; i < meshCompactness.size(); i++){
         max = std::max(meshCompactness[i],max);
         min = std::min(meshCompactness[i],min);
         avg += meshCompactness[i];
+        if(meshCompactness[i] >= 0.75)
+            count_75++;
+        if(meshCompactness[i] >= 0.9)
+            count_90++;
     }
 
     avg = avg/meshCompactness.size();
     cout<<"Triangle compactness: Max: "<<max<<", Min: "<<min<<", Avg: "<<avg<<endl;
+    cout<< ">= 0.75 ratio: "<< double(count_75)/double(meshCompactness.size())<<"; >= 0.9 ratio: "<< double(count_90)/double(meshCompactness.size())<<endl;
     //TODO: write the vector to file
 }
 
