@@ -35,9 +35,9 @@ int main(int argc, char** argv)
     omp_set_num_threads(cli.num_of_threads);
     //// TO check if the parallel version works the same as the sequential one:
     //// We can set the number of threads to be 1. 
-    // omp_set_num_threads(1);
+    
     }
-
+    omp_set_num_threads(1);
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cli.app_debug=OUTPUT;
     cerr<<"[GENERATION] PR-T tree"<<endl;
