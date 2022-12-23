@@ -82,12 +82,14 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify(PRT_Tree &tree, Mesh &me
     check_delaunay(tree,mesh);
     time.stop();
     time.print_elapsed_time("[TIME] Check Delaunay property: ");
-
+    dvect shape_values(mesh.get_triangles_num(), 0);
     time.start();
-    compute_compactness(tree,mesh);
+    compute_compactness(tree,mesh, shape_values);
     time.stop();
     time.print_elapsed_time("[TIME] Compute triangle compactness:");
-
+    stringstream base;
+    base << string_management::get_path_without_file_extension(cli.mesh_path);
+    Writer::write_vector(base.str() + "_shape_distribution", shape_values);
 
 
 }
@@ -119,9 +121,9 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     int simplification_round;
     int round = 1;
 
-    if(cli.evaluation_mode)
-        params.calc_stats();
-
+    // if(cli.evaluation_mode)
+    //     params.calc_stats();
+    
     time.start();
     cout << "Number of threads used in the simplification:" << omp_get_max_threads() << endl;
     // const int t_num = mesh.get_triangles_num();
@@ -206,12 +208,12 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
         // time.start();
         // cout<<"number of remaining triangles: "<<tree.get_mesh().get_triangles_num()<<endl;
 
-        if(params.output_stats()){
-                stringstream out;
+        // if(params.output_stats()){
+        //         stringstream out;
 
-                Writer::write_edge_costs_vtk(base.str()+"_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
-                this->edge_costs_output.clear();
-        }
+        //         Writer::write_edge_costs_vtk(base.str()+"_edge_output_"+to_string(round-1), mesh, this->edge_costs_output);
+        //         this->edge_costs_output.clear();
+        // }
 
         if (simplification_round == params.get_contracted_edges_num())
             break;
@@ -232,9 +234,7 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     time.stop();
 
     ///// Clear all the auxiliary data structures.
-    //v_locks.clear();
-    // vector<omp_lock_t>().swap(t_locks);
-    //vector<omp_lock_t>().swap(v_locks);
+
     vector<omp_lock_t>().swap(l_locks);
     vector<Matrix>().swap(initialQuadric);
     vector<int>().swap(v_in_leaf);
@@ -242,11 +242,8 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     // vector<int>().swap(v_in_leaf);
     // lists_leafs().swap(conflict_leafs);
     // l_locks.clear();
-    cout<<"size of total contracted costs:"<<contracted_costs.size()<<endl;
-    cout<<"size of total skipped edge costs:"<<skipped_costs.size()<<endl;
-
-
-
+    // cout<<"size of total contracted costs:"<<contracted_costs.size()<<endl;
+    // cout<<"size of total skipped edge costs:"<<skipped_costs.size()<<endl;
 
     if (!cli.debug_mode)
         time.print_elapsed_time("[TIME] Edge contraction simplification: ");
@@ -272,10 +269,13 @@ void Gradient_Aware_Simplifier::gradient_aware_simplify_parallel(PRT_Tree &tree,
     time.stop();
     time.print_elapsed_time("[TIME] Check Delaunay property: ");
     cerr << "[MEMORY] peak for checking Delaunay property: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+    dvect shape_values(mesh.get_triangles_num(), 0);
+
     time.start();
-    compute_compactness(tree,mesh);
+    compute_compactness(tree, mesh, shape_values);
     time.stop();
     time.print_elapsed_time("[TIME] Compute triangle compactness:");
+    // Writer::write_vector(base.str() + "_shape_distribution", shape_values);
 
 }
 
@@ -1003,7 +1003,7 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
     if (!n.indexes_vertices())
         return;
     vector<pair<coord_type, int>> leaf_contract_costs; 
-    //vector<pair<coord_type, int>> leaf_skipped_costs;
+    vector<pair<coord_type, int>> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -1057,7 +1057,12 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
             {
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
                 edges_contracted_leaf++;
-                leaf_contract_costs.push_back(make_pair(current->val, n_id));
+
+                if(params.output_stats())
+                {
+                    leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                }
+                
                 int nodeToUpdate = v_in_leaf[e[0]];
                 if (params.is_parallel())
                 {
@@ -1092,13 +1097,15 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross(Node_V &n, int n_id, Mesh &m
         // }
         delete current;
     }
-    #pragma omp critical
+    if(params.output_stats())
     {
-    //    skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
-   //                   std::make_move_iterator(leaf_skipped_costs.end()));
-        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
-                      std::make_move_iterator(leaf_contract_costs.end()));
+        #pragma omp critical
+        {
+            contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                        std::make_move_iterator(leaf_contract_costs.end()));
+        }
     }
+
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }
@@ -1109,7 +1116,7 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     if (!n.indexes_vertices())
         return;
     vector<pair<coord_type, int>> leaf_contract_costs; 
-   // vector<pair<coord_type, int>> leaf_skipped_costs;
+    vector<pair<coord_type, int>> leaf_skipped_costs;
     itype v_start = n.get_v_start();
     itype v_end = n.get_v_end();
     itype v_range = v_end - v_start;
@@ -1169,12 +1176,16 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
         VV vv_locks;
         if (link_condition(e[0], e[1], *vt0, *vt1, et, n, *outer_v_block, vv_locks, mesh) && not_fold_over(e[0], e[1], *vt0, *vt1, et, mesh) /*&& valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)*/)
         { 
-            //if(valid_boundary_condition(e[0],e[1],*vt0,*vt1,et,v1_is_border,v2_is_border,mesh)){
+            // if(valid_boundary_condition(e[0],e[1],*vt0,*vt1,et,v1_is_border,v2_is_border,mesh)){
             if(valid_gradient_configuration(e[0], e[1], *vt0, *vt1, et, v1_is_border, v2_is_border, gradient, mesh)){
                 contract_edge(e, et, *vt0, *vt1, *outer_v_block, edges, n, mesh, params, gradient, updated_edges);
                 
                 // break;
-                leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                if(params.output_stats())
+                {
+                    leaf_contract_costs.push_back(make_pair(current->val, n_id));
+                }
+                
 
                 int nodeToUpdate = v_in_leaf[e[0]];
 
@@ -1201,13 +1212,17 @@ void Gradient_Aware_Simplifier::simplify_leaf_cross_QEM(Node_V &n, int n_id, Mes
     }
 
 
-    #pragma omp critical
+    if(params.output_stats())
     {
-       // skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
-        //              std::make_move_iterator(leaf_skipped_costs.end()));
-        contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
-                      std::make_move_iterator(leaf_contract_costs.end()));
+            #pragma omp critical
+        {
+        // skipped_costs.insert(skipped_costs.end(),                      std::make_move_iterator(leaf_skipped_costs.begin()), 
+            //              std::make_move_iterator(leaf_skipped_costs.end()));
+            contracted_costs.insert(contracted_costs.end(),                      std::make_move_iterator(leaf_contract_costs.begin()), 
+                        std::make_move_iterator(leaf_contract_costs.end()));
+        }
     }
+
     // leaf_VV vvs;
     // n.get_VV(vvs,mesh);
 }

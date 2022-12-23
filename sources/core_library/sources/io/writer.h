@@ -125,12 +125,13 @@ public:
     static void write_edge_costs(string mesh_name, vector<pair<coord_type, int>>& edge_costs);
 
 
-    template<class N, class D> static void write_edge_cost_distribution(N& root,D& division, string file_name, Mesh &mesh, string& csv_path);
+    template<class N, class D> static void write_edge_cost_distribution(N& root,D& division, string file_name, Mesh &mesh, string& csv_path, vector<int>& count_per_leaf);
 
     static void write_edge_costs_vtk(string mesh_name, Mesh &mesh, map<pair<int, int>, coord_type>& edge_costs);
 
-    static void write_boundary_matrix_pair(string mesh_name, Mesh &mesh, map<int,int> &pairs, vector<vector<int>>& index_to_simplex);
+    static void write_boundary_matrix_pair(string mesh_name, Mesh &mesh, vector<pair<coord_type, coord_type>> &v_e_pairs, vector<pair<coord_type, coord_type>> &e_t_pairs);
 
+    static void write_vector(string file_name, dvect& input);
 protected:
     ///A constructor method
     Writer() {}
@@ -275,7 +276,7 @@ template<class N, class D> void Writer::extract_leaf_domains(N &n, D &division, 
     }
 }
 
-template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D &division, string file_name, Mesh &mesh, string& csv_path){
+template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D &division, string file_name, Mesh &mesh, string& csv_path, vector<int>& count_per_leaf){
 
 
     ofstream output(file_name.c_str());
@@ -341,7 +342,7 @@ template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D 
     output<< endl;
     output<< "scalars avg_cost float"<<endl;
     output<< "LOOKUP_TABLE default"<<endl;
-    //int leaf_id = 0;
+
     for(int b=0; b<all_leaves.size(); b++){
         float val=0;
         if( edgeCount.find(b) != edgeCount.end() )
@@ -354,6 +355,23 @@ template<class N, class D> void Writer::write_edge_cost_distribution(N &root, D 
           //  cout<<"x dif: "<<x_dif<<", y dif: "<<y_dif<<endl;
             val = double(edgeCount[b])/x_dif / y_dif;
 
+        }
+        output<<val<<" ";
+    }
+
+    //int leaf_id = 0;
+
+
+    output<< endl;
+    output<< "scalars ratio float"<<endl;
+    output<< "LOOKUP_TABLE default"<<endl;
+    //int leaf_id = 0;
+    for(int b=0; b<all_leaves.size(); b++){
+        float val = 0;
+        if( edgeCount.find(b) != edgeCount.end() )
+        { 
+
+            val = double(edgeCount[b]) / double(count_per_leaf[b]) * 100;
         }
         output<<val<<" ";
     }

@@ -2760,9 +2760,9 @@ void Contraction_Simplifier::check_delaunay_triangle(bool& is_delaunay, Point& c
 
 }
 
-void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh){
+void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh, dvect& meshCompactness){
 
-    dvect meshCompactness(mesh.get_triangles_num(), 0);
+    //dvect meshCompactness(mesh.get_triangles_num(), 0);
     #pragma omp parallel for
     for (unsigned i = 0; i < tree.get_leaves_number(); i++)
     {
@@ -2800,7 +2800,6 @@ void Contraction_Simplifier::compute_compactness(PRT_Tree &tree, Mesh &mesh){
     cout<<"Triangle compactness: Max: "<<max<<", Min: "<<min<<", Avg: "<<avg<<endl;
     cout<< ">= 0.75 ratio: "<< double(count_75)/double(meshCompactness.size())<<"; >= 0.9 ratio: "<< double(count_90)/double(meshCompactness.size())<<endl;
 
-    //TODO: write the vector to file
 }
 
 vector<pair<coord_type, int>>& Contraction_Simplifier::get_edge_costs(bool contracted){

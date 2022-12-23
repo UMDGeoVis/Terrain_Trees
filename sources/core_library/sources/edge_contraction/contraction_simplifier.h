@@ -26,7 +26,7 @@ public:
     void preprocess(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli);
     void error_range(PRT_Tree &tree, Mesh &mesh, cli_parameters &cli, itype num_bin);
     void check_delaunay(PRT_Tree &tree, Mesh &mesh);
-    void compute_compactness(PRT_Tree &tree, Mesh &mesh);
+    void compute_compactness(PRT_Tree &tree, Mesh &mesh, dvect& meshCompactness);
     vector<pair<coord_type, int>>& get_edge_costs(bool contracted);
     
 protected:

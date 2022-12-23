@@ -554,13 +554,14 @@ void PRT_Tree::update_triangle_arrays(Node_V &n, Box &n_dom, int level,  ivect &
                 tid = new_t_positions[*orig_id-1];              
             }
             int count = n.index_tri_ver_num(this->mesh.get_triangle(tid));
+            if(count == 0 && !Geometry_Wrapper::triangle_in_box_build(tid, n_dom, this->mesh)){
+                continue;
+            }
             if(count != 3)
             {
                 tris_to_update[tid].push_back(label);
             }
-            if(count == 0 && !Geometry_Wrapper::triangle_in_box_build(tid, n_dom, this->mesh)){
-                continue;
-            }
+
             t_list.insert(tid);
 
         }
