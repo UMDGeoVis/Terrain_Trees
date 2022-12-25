@@ -54,6 +54,7 @@
 #include "edge_contraction/contraction_simplifier.h"
 #include "edge_contraction/gradient_aware_contraction.h"
 #include "edge_contraction/smooth.h"
+#include "edge_contraction/distance_calculator.h"
 
 #include "morse/forman_gradient.h"
 #include "morse/forman_gradient_computation.h"
