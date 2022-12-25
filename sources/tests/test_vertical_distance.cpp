@@ -2,7 +2,7 @@
 
 using namespace utility_functions;
 
-void load_tree(PRT_Tree& tree, cli_parameters &cli);
+void load_tree(PRT_Tree& tree, cli_parameters &cli,  bool rebuild_tree);
 void interpolate_vertices(PRT_Tree& tree, cli_parameters& cli, vector<Vertex>& input_vertices, vector<coord_type>& distances);
 
 int main(int argc, char** argv)
@@ -13,12 +13,15 @@ int main(int argc, char** argv)
 	cerr<<"[OBJECTIVE] this unit-test reads the simplified mesh and the original mesh. For each vertex in the original mesh, it calculates its vertical distance to the  simplified mesh."
 	    <<"The output is the maximum of all vertice distances. "<<endl;
 		
-	
 	cli.division_type = QUAD;
     cli.crit_type = "pr";
     cli.v_per_leaf = atoi(argv[2]);
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
-    load_tree(ptree,cli);
+    bool rebuild = false;
+    if(argc >= 5 && strcmp(argv[4], "-r") == 0)
+        rebuild = true;
+
+    load_tree(ptree, cli, rebuild);
 
     ptree.init_leaves_list(ptree.get_root()); 
 
@@ -32,13 +35,19 @@ int main(int argc, char** argv)
     }
     vector<coord_type> distances(orig_mesh.get_vertices_num(), 0);
     vector<Vertex> vertices = orig_mesh.get_vertices_array();
-    
+    Timer time;
+
+    time.start();
     Distance_Calculator distance_calculator;
     distance_calculator.vertical_distance(ptree, vertices);
+    time.stop();
+    time.print_elapsed_time("[TIME] Calculating vertical distance ");
+    cerr << "[MEMORY] peak for calculating vertical distance: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+
     return (EXIT_SUCCESS);
 }
 
-void load_tree(PRT_Tree& tree, cli_parameters &cli)
+void load_tree(PRT_Tree& tree, cli_parameters &cli, bool rebuild_tree)
 {
     Timer time;
     if (!Reader::read_mesh(tree.get_mesh(), cli.mesh_path))
@@ -60,15 +69,22 @@ void load_tree(PRT_Tree& tree, cli_parameters &cli)
 
     cli.tree_path=out.str();
 
+    if (rebuild_tree || !Reader::read_tree(tree, tree.get_root(), cli.tree_path))
+    {
+        cerr << "[ERROR] Loading .tree file." << endl;
+        cerr << "[GENERATION] tree from triangle mesh" << endl;
+        time.start();
+        tree.build_tree();
+        time.stop();
+        time.print_elapsed_time(tree_info.str());
+        Writer::write_tree(out.str(), tree.get_root(), tree.get_subdivision());
+    }
+    else
+        cout << "[NOTICE] Found corresponding .tree file. Loaded tree from file successfully"<<endl;
 
-    cerr << "[GENERATION] tree from triangle mesh" << endl;
-    time.start();
-    tree.build_tree();
-    time.stop();
-    time.print_elapsed_time(tree_info.str());
-    // Writer::write_tree(out.str(), tree.get_root(), tree.get_subdivision());
 
     cerr << "[MEMORY] peak for encoding the Terrain tree: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
+
 
     stringstream out2;
     out2 << base.str();
