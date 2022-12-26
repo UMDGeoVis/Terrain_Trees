@@ -63,6 +63,7 @@ template<class T> void Distance_Calculator::vertical_distance(T& tree, vector<Ve
         coord_type z = this->point_interpolate(tree.get_root(),tree.get_mesh().get_domain(),0,points[i], tree.get_mesh(),tree.get_subdivision(), external);
         if(external) {
             count_external++;
+            // cout<<points[i].get_x()<<", "<<points[i].get_y()<<endl;
             continue;
         }
         coord_type dist = abs(z - points[i].get_z());

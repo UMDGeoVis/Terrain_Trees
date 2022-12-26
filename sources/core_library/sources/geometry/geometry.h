@@ -89,6 +89,7 @@ protected:
     Here the triangle is given as two arrays x[3], y[3] containing the coordinates of its three vertices
     */
     static int PointInTriangle (double xp, double yp, double * v1, double * v2, double * v3);
+    static int PointInTriangle_old (double xp, double yp, double * v1, double * v2, double * v3);
     static int PointInTriangle_strict (double xp, double yp, double * v1, double * v2, double * v3);
 
 
