@@ -74,7 +74,7 @@ template<class T> void Distance_Calculator::vertical_distance(T& tree, vector<Ve
         
     }
     
-    stat_avg = stat_sum/double(points.size());
+    stat_avg = stat_sum/double(points.size() - count_external);
     cout<<"Original mesh statistics (max, min): " <<endl;
     cout<<elev_max<<"  "<<elev_min<<endl;
     cout<<"=============Vertical distance statistics==========="<<endl;
