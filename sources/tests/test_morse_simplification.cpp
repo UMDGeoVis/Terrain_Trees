@@ -1,3 +1,7 @@
+/*
+Test file for topological simplification module. Currently only the global version is working.
+*/
+
 #include "utilities/utility_functions.h"
 
 using namespace utility_functions;
