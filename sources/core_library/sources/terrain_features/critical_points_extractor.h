@@ -44,12 +44,7 @@ public:
     void compute_critical_points(Node_T &n, Box &dom, Mesh &mesh, Spatial_Subdivision &division);
     //
     void print_stats();
-    inline vector<short> get_critical_points() {
-        vector<short> critical_output;
-        for(int i=0; i<critical_points.size();i++)
-         critical_output.push_back(static_cast<short>(critical_points[i]));
-
-         return critical_output; }
+    inline vector<Point_Type>& get_critical_points() { return this->critical_points; }
 
 private:
     vector<Point_Type> critical_points;
