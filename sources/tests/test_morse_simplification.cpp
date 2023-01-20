@@ -9,7 +9,7 @@ using namespace utility_functions;
 template<class T> void load_tree(T& tree, cli_parameters &cli);
 template<class T> void morse_simplification(T& tree, cli_parameters &cli);
 template<class T> void load_terrain(T& tree, cli_parameters &cli);
-
+template<class T> void extract_features(T& tree, cli_parameters &cli, Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name);
 
 int main(int argc, char** argv )
 {
@@ -87,11 +87,17 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
     time.stop();
     time.print_elapsed_time("[TIME] computing gradient vector field ");
 
+
+
+
     /// ---- MORPHOLOGICAL SIMPLIFICATION --- ///        
     {
         Forman_Gradient_Simplifier forman_simplifier;
         forman_simplifier.set_filtration_vec(gradient_computation.get_filtration());
 
+
+        cout<<"--- Topological features BEFORE simplification ---"<<endl;
+        extract_features(tree, cli, forman_simplifier, forman_gradient,"before");
         ///
         /// firstly we extract the MIG
         ///
@@ -103,7 +109,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         Writer_Morse::write_incidence_graph_VTK(out.str(),"mig", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
                                           cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original); /// and we save it
 
-       // features_extractor.get_incidence_graph().print_stats(true);
+       // forman_simplifier.get_incidence_graph().print_stats(true);
         forman_simplifier.get_incidence_graph().print_stats(true);
         forman_simplifier.reset_stats();
         forman_simplifier.reset_output_structures(tree.get_mesh());
@@ -134,6 +140,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         forman_simplifier.print_simplification_stats();
     
 
+
         ///
         /// then we compute again and output the simplified mig
         ///
@@ -153,6 +160,9 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
 
         forman_simplifier.reset_output_structures(tree.get_mesh());
         forman_simplifier.reset_timer_variables();
+
+        cout<<"--- Topological features AFTER simplification ---"<<endl;
+        extract_features(tree, cli, forman_simplifier, forman_gradient, "after");
     }
 }
 
@@ -176,7 +186,7 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
         time.start();
         if (!Reader::read_tree(tree, tree.get_root(), cli.tree_path))
         {
-            cerr << "[ERROR] Loading .tree file. Execution Stopped." << endl;
+            cerr << "[ERROR] Loading .tree file. Regenerate the Terrain tree." << endl;
             return;
         }
         time.stop();
@@ -205,7 +215,7 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
             tree.build_tree();
             time.stop();
             time.print_elapsed_time(tree_info.str());
-         //   Writer::write_tree(out.str(), tree.get_root(), tree.get_subdivision());
+            Writer::write_tree(out.str(), tree.get_root(), tree.get_subdivision());
         }
         else
             cout << "[NOTICE] Found corresponding .tree file. Loaded tree from file successfully"<<endl;
@@ -235,11 +245,8 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
     {
         cerr<<"[REINDEXING] tree and triangle mesh"<<endl;
 
-
-        //        if((cli.query_type == MORSE_ANALYSIS || cli.query_type == LOCAL_MORSE_SIMPLIFICATION || cli.query_type == GLOBAL_MORSE_SIMPLIFICATION)
-        //                && cli.app_debug == OUTPUT)
         cli.original_vertex_indices.assign(tree.get_mesh().get_vertices_num(),-1);
-        if(cli.query_type == MORSE_ANALYSIS && cli.app_debug == OUTPUT)
+        if(cli.app_debug == OUTPUT)
             cli.original_triangle_indices.assign(tree.get_mesh().get_triangles_num(),-1);
 
         time.start();
@@ -258,4 +265,69 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
         Statistics stats;
         stats.get_index_statistics(tree,cli.reindex);
     }
+}
+
+template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name)
+{
+    /// --- TOPOLOGY FEATURE EXTRACTION --- ///
+    Timer time;
+    stringstream out;
+    out << get_path_without_file_extension(cli.mesh_path);
+    out <<"_"<< file_name;
+    /// ---- DESCENDING 2 MANIFOLD EXTRACTION --- ///
+    cout<<"[NOTA] Extract the descending 2 manifolds."<<endl;
+    if(cli.app_debug == OUTPUT)
+        forman_simplifier.init_segmentation_vector(tree.get_mesh());
+    time.start();
+    forman_simplifier.extract_descending_2cells(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),tree.get_root(),
+                                                    cli.app_debug,cli.cache_size);
+    time.stop();
+
+    if(cli.app_debug == OUTPUT) //get statistics
+    {
+        forman_simplifier.print_stats();
+        forman_simplifier.reset_stats();
+        Writer_Morse::write_desc2cells_VTK(out.str(),"desc2cells", cli.v_per_leaf,
+                                            forman_simplifier.get_segmentation_vector(),tree.get_mesh(),cli.original_triangle_indices,
+                                            cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+        forman_simplifier.reset_output_structures(tree.get_mesh());
+    }
+    else //get timings
+    {
+        time.print_elapsed_time("[TIME] extract descending 2-cells ");
+        if(cli.app_debug == TIME_VERBOSE)
+        {
+            forman_simplifier.print_feature_extraction_time();
+            forman_simplifier.reset_timer_variables();
+        }
+    }
+
+        /// ---- ASCENDING 2 MANIFOLD EXTRACTION --- ///
+    cout<<"[NOTA] Extract the ascending 2 manifolds."<<endl;
+    if(cli.app_debug == OUTPUT)
+        forman_simplifier.init_ascending_segmentation_vector(tree.get_mesh());
+    time.start();
+    forman_simplifier.extract_ascending_2cells(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),tree.get_root(),
+                                                cli.app_debug,cli.cache_size);
+    time.stop();
+
+    if(cli.app_debug == OUTPUT)
+    {
+        forman_simplifier.print_stats();
+        forman_simplifier.reset_stats();
+        Writer_Morse::write_asc2cells_VTK(out.str(),"asc2cells", cli.v_per_leaf,
+                                            forman_simplifier.get_ascending_segmentation(), tree.get_mesh(), cli.original_vertex_indices,
+                                            cli.original_vertex_fields,cli.rever_to_original);
+        forman_simplifier.reset_output_structures(tree.get_mesh());
+    }
+    else //get timings
+    {
+        time.print_elapsed_time("[TIME] extract ascending 2-cells ");
+        if(cli.app_debug == TIME_VERBOSE)
+        {
+            forman_simplifier.print_feature_extraction_time();
+            forman_simplifier.reset_timer_variables();
+        }
+    }
+
 }

@@ -883,10 +883,11 @@ template<class T> void morse_analysis(T& tree, cli_parameters &cli){
     time.stop();
     time.print_elapsed_time("[TIME] Initial filtering ");
 
-    load_tree_lite(tree,cli);
-
     //WARNING AFTER THIS THE FILTRATION ARRAY IN forman_gradient AND THE POSITION INDICES OF THE VERTICES OF THE TIN WILL NOT BE ALIGNED..
     // YOU HAVE TO USE original_vertex_indices FOR FETCHING THE CORRECT FILTRATION VALUE OF A VERTEX
+    load_tree_lite(tree,cli);
+
+    // Reset the filtration to the index after reindexing.
     gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
 
     cout<<"[NOTA] Computing the gradient field"<<endl;
