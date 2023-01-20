@@ -210,7 +210,7 @@ template<class T> void compute_roughness(T& tree, cli_parameters &cli)
     time.print_elapsed_time("[TIME] roughness computation: ");
      cerr << "[MEMORY] peak for computing Roughness: " <<
         to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
-           roughness.store_result(tree.get_mesh());
+        //    roughness.store_result(tree.get_mesh());
     roughness.print_roughness_stats(tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num()-1);
  
  Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num()-1);
@@ -236,7 +236,7 @@ void compute_roughness(PMRT_Tree& tree, cli_parameters &cli)
     time.print_elapsed_time("[TIME] roughness computation: ");
          cerr << "[MEMORY] peak for computing Roughness: " <<
         to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
-               roughness.store_result(tree.get_mesh());
+            //    roughness.store_result(tree.get_mesh());
     roughness.print_roughness_stats(tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num()-1);
     }
 
@@ -316,7 +316,7 @@ template<class T> void compute_terrain_features(T& tree)
         cout<<"[TEST] New way to extract triangle slopes."<<endl;
         Slope_Extractor se;
         time.start();
-        se.compute_triangles_slopes_new(tree.get_root(),tree.get_mesh(),tree.get_subdivision());
+        se.compute_triangles_slopes(tree.get_root(),tree.get_mesh(),tree.get_subdivision());
         time.stop();
         time.print_elapsed_time("[TIME] triangle-slopes computation: ");
         se.print_slopes_stats(tree.get_mesh().get_triangles_num());
@@ -351,10 +351,10 @@ void compute_terrain_features(PMRT_Tree& tree)
     }
 
     {
-        cout<<"[TEST] New way to Extract triangle slopes."<<endl;
+        cout<<"[TEST] Extract triangle slopes."<<endl;
         Slope_Extractor se;
         time.start();
-        se.compute_triangles_slopes_new(tree.get_root(),tree.get_mesh().get_domain(),0,tree.get_mesh(),tree.get_subdivision());
+        se.compute_triangles_slopes(tree.get_root(),tree.get_mesh().get_domain(),0,tree.get_mesh(),tree.get_subdivision());
         time.stop();
         time.print_elapsed_time("[TIME] triangle-slopes computation: ");
         se.print_slopes_stats(tree.get_mesh().get_triangles_num());

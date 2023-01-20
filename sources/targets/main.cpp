@@ -1337,8 +1337,12 @@ template<class T> void compute_terrain_features(T& tree, cli_parameters &cli)
         cpe.print_stats();
         cerr << "[MEMORY] peak for computing the critical points: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
         if(cli.app_debug==OUTPUT){
-          vector<short> crit_points= cpe.get_critical_points();
-          Writer::write_critical_points(out.str(),crit_points,tree.get_mesh());
+          vector<Point_Type> crit_points= cpe.get_critical_points();
+          vector<short> crit_points_int;
+          for(auto crit_point:crit_points){
+            crit_points_int.push_back(static_cast<short>(crit_point));
+          }
+          Writer::write_critical_points(out.str(),crit_points_int,tree.get_mesh());
         }
         
     }
@@ -1434,8 +1438,13 @@ void compute_terrain_features(PMRT_Tree& tree, cli_parameters &cli)
         cpe.print_stats();
         cerr << "[MEMORY] peak for computing the critical points: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
         if(cli.app_debug==OUTPUT){
-          vector<short> crit_points= cpe.get_critical_points();
-          Writer::write_critical_points(out.str(),crit_points,tree.get_mesh());
+          vector<Point_Type> crit_points= cpe.get_critical_points();
+          vector<short> crit_points_int;
+          for(auto crit_point:crit_points){
+            crit_points_int.push_back(static_cast<short>(crit_point));
+          }
+
+          Writer::write_critical_points(out.str(),crit_points_int,tree.get_mesh());
         }
     }
     if(cli.query_type==ROUGHNESS)
