@@ -457,14 +457,9 @@ void Forman_Gradient_Simplifier::removal(nNode *extrema, iNode *saddle, priority
    // cout<<"REMOVAL SADDLE: "<<*saddle<<endl;
     ig.remove_saddle(saddle->get_edge_id(),saddle);
     ig.remove_maximum(extrema->get_critical_index(),extrema);
-
-//    ivect edge = {11376, 11377};
-//    ET et = {22741, 22728};
-//    cout<<"IS THE TARGET EDGE CRITICAL? "<<gradient.is_edge_critical(edge,et,mesh)<<endl;
-//    int a; cin>>a;
 }
 
-void Forman_Gradient_Simplifier::contraction_update_gradient(itype vertex, itype ex_minimum, itype next_vertex, ivect &critical_edge, Mesh &mesh,
+void Forman_Gradient_Simplifier::contraction_update_gradient(itype vertex, itype ex_minimum, itype next_vertex, const ivect &critical_edge, Mesh &mesh,
                                                              Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache,
                                                              Node_V &n, Node_V &root, Spatial_Subdivision &division)
 {
@@ -499,8 +494,6 @@ void Forman_Gradient_Simplifier::contraction_update_gradient(itype vertex, itype
             gradient.set_VE(old_edge[1], old_edge[0], old_ef, mesh);
             Forman_Gradient_Topological_Relations::set_VTstar(n,old_edge[1],old_ef.first,local_rels.get_VTstars(),cache.get_vtstar_cache(),root,division);
         }
-
-        //        delete old_edge;
         /// save for the next step
         old_edge = edge;
         old_ef = ef;

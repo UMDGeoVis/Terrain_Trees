@@ -44,9 +44,11 @@ public:
                                                OpType operation, int cache_size, coord_type persistence);
     coord_type get_average_persistence_value(IG &ig, Mesh &mesh);
 
-    void exec_global_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division,
-                                                OpType operation, int cache_size, coord_type persistence);
+    // void exec_global_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division,
+    //                                             OpType operation, int cache_size, coord_type persistence);
     
+    // A new version of topological simplification that uses a global priority queue for storing the arcs. 
+    void exec_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division, int cache_size, coord_type persistence);
     inline void print_simplification_stats()
     {
         cerr<<"   performed simplification: "<<refined_topo<<endl;
@@ -79,10 +81,8 @@ private:
     void removal(nNode *extrema, iNode *saddle, priority_arcs_queue &q, IG &ig, Mesh &mesh, Forman_Gradient &gradient,
                  local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
 
-    void contraction_update_gradient(itype vertex, itype ex_minimum, itype next_vertex, ivect &critical_edge, Mesh &mesh, Forman_Gradient &gradient,
-                                     local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division);
-    void removal_update_gradient(itype triangle, iNode *saddle, Mesh &mesh, Forman_Gradient &gradient, leaf_ET &local_ef, mig_cache &cache,
-                                 Node_V &n, Node_V &root, Spatial_Subdivision &division);
+    void contraction_update_gradient(itype vertex, itype ex_minimum, itype next_vertex, const ivect &critical_edge, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division);
+    void removal_update_gradient(itype triangle, iNode *saddle, Mesh &mesh, Forman_Gradient &gradient, leaf_ET &local_ef, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division);
 
     inline void remove_saddle_arcs(iNode *saddle, bool is_minimum, IG &ig)
     {
@@ -130,21 +130,15 @@ private:
 
 
     /// ----- GLOBAL TOPOLOGICAL SIMPLIFICATION FUNCTIONS ----- ///
-    void global_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division, Node_V &root, OpType operation,
-                                           mig_cache &cache, coord_type persistence);
-    void global_topological_simplification_leaf(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache,
-                                                Node_V &root, Spatial_Subdivision &division, coord_type persistence);
+    void topological_simplification(const ivect& critical_edge, Topo_Sempl& sempl,  priority_arcs_queue &queue, Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division, Node_V &root, mig_cache &cache, coord_type persistence);
+    // void topological_simplification_leaf(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
 
-    /// push into the priority queue only those arc below the avg
-    void build_persistence_queue(priority_arcs_queue &q, leaf_ET &local_ef, Mesh &mesh, Forman_Gradient &gradient, coord_type persistence);
-    void simplify(priority_arcs_queue &queue, Node_V &n, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache,
-                  Node_V &root, Spatial_Subdivision &division, coord_type persistence);
-    void contraction(nNode *extrema, iNode *saddle, priority_arcs_queue &q, Mesh &mesh, Forman_Gradient &gradient,
-                     local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
-    void removal(nNode *extrema, iNode *saddle, priority_arcs_queue &q, Mesh &mesh, Forman_Gradient &gradient,
-                 local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
-    void remove_extreme_arcs(nNode* extrema, iNode* saddle, nNode *other_extrema, itype ending_path_simplex,
-                             bool is_minimum, priority_arcs_queue &q, Node_V &n,Mesh &mesh, coord_type persistence);
+    void build_persistence_queue(Node_V &n, Spatial_Subdivision &division, priority_arcs_queue &q, Mesh &mesh, Forman_Gradient &gradient, mig_cache &cache, coord_type persistence);
+    void build_persistence_queue_leaf(Node_V &n, priority_arcs_queue &q, leaf_ET &local_et, Mesh &mesh, Forman_Gradient &gradient, coord_type persistence);
+    void simplify(const ivect& critical_edge, Topo_Sempl& sempl, priority_arcs_queue&queue, Node_V &n, Mesh &mesh, Forman_Gradient &gradient, mig_cache &cache, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
+    void contraction(const ivect& critical_edge, nNode *extrema, iNode *saddle, priority_arcs_queue &q, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
+    void removal(const ivect& critical_edge, nNode *extrema, iNode *saddle, priority_arcs_queue &q, Mesh &mesh, Forman_Gradient &gradient, local_VTstar_ET &local_rels, mig_cache &cache, Node_V &n, Node_V &root, Spatial_Subdivision &division, coord_type persistence);
+    void remove_extreme_arcs(nNode* extrema, iNode* saddle, nNode *other_extrema, itype ending_path_simplex, bool is_minimum, priority_arcs_queue &q, Node_V &n,Mesh &mesh, coord_type persistence);                                        
 };
 
 #endif // FORMAN_GRADIENT_SIMPLIFICATION_H

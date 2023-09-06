@@ -335,21 +335,21 @@ public:
 class Topo_Sempl
 {
 
-public:
-    Arc* arc;
-    coord_type val;
-    int filt_s0,filt_s1;
-    ivect filt_ex;
-    int lvl;
+    public:
+        Arc* arc;
+        coord_type val;
+        int filt_s0,filt_s1;
+        ivect filt_ex;
+        int lvl;
 
-    Topo_Sempl() { arc = NULL; val = -1; lvl = -1;filt_s0=filt_s1=-1;filt_ex=ivect(); }
-    Topo_Sempl(Arc* arc, coord_type val, int lvl,int filt_s0,int filt_s1,ivect filt_ex){ this->arc = arc; this->val=val; this->lvl=lvl;this->filt_s0=filt_s0;this->filt_s1=filt_s1;this->filt_ex=filt_ex;}
+        Topo_Sempl() { arc = NULL; val = -1; lvl = -1;filt_s0=filt_s1=-1;filt_ex=ivect(); }
+        Topo_Sempl(Arc* arc, coord_type val, int lvl,int filt_s0,int filt_s1,ivect filt_ex){ this->arc = arc; this->val=val; this->lvl=lvl;this->filt_s0=filt_s0;this->filt_s1=filt_s1;this->filt_ex=filt_ex;}
 
-    inline friend std::ostream& operator<< (std::ostream &out, Topo_Sempl &q)
-    {
-        out << "A("<<*q.arc<< ") V["<<q.val<<"] lvl["<<q.lvl<<"]";
-        return out;
-    }
+        inline friend std::ostream& operator<< (std::ostream &out, Topo_Sempl &q)
+        {
+            out << "A("<<*q.arc<< ") V["<<q.val<<"] lvl["<<q.lvl<<"]";
+            return out;
+        }
 };
 
 struct sort_arcs_topo{

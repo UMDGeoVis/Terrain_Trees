@@ -224,9 +224,7 @@ void Forman_Gradient_Features_Extractor::get_new_IG_paths(Node_V &n, Mesh &mesh,
         {
             /// intro stuff.. ///
             itype max_field_v = get_max_elevation_vertex(it_e->first);
-
             Triangle& t_first = mesh.get_triangle(it_e->second.first);
-
             /// edge and edge_vertices position in the two triangles
             short e_pos_first = t_first.edge_index(it_e->first);
             short e_pos_second = -1;
@@ -444,8 +442,8 @@ void Forman_Gradient_Features_Extractor::explore_desc1cell_mig(Node_V &n, Edge *
     queue<Edge*> coda;
     coda.push(edge);
 
-    itype last_v = first_v; /// last vertex visited
-
+    itype last_v = first_v; /// last vertex visited     
+    // BFS to find the path between the saddle and the extreme (minimum).
     while(!coda.empty())
     {
         Edge* e = coda.front();

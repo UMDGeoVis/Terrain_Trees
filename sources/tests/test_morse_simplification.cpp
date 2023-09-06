@@ -14,21 +14,13 @@ template<class T> void extract_features(T& tree, cli_parameters &cli, Forman_Gra
 int main(int argc, char** argv )
 {
     cli_parameters cli;
-    cli.mesh_path = argv[2];
+    cli.mesh_path = argv[1];
     cli.division_type = QUAD;
     cli.crit_type = "pr";
-    cli.v_per_leaf = 200;
+    cli.v_per_leaf = atoi(argv[2]);
 	cli.app_debug = OUTPUT;
 	cli.persistence = atof(argv[3]);
-    if(strcmp(argv[1],"local")==0)
-       cli.query_type = LOCAL_MORSE_SIMPLIFICATION;//LOCAL_ or GLOBAL_MORSE_SIMPLIFICATION
-	else if(strcmp(argv[1],"global")==0)
-        cli.query_type=GLOBAL_MORSE_SIMPLIFICATION;
-    else
-    {
-        cout<<"Please enter the type of morse simplification"<<endl;
-        return 1;
-    }
+
     
     cerr<<"[OBJECTIVE] this unit-test generates a quadtrees based on the PR-T tree criterion. "
 	    <<"then, it saves the index and the mesh in VTK format for visualization purposes and finally "
@@ -88,13 +80,10 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
     time.print_elapsed_time("[TIME] computing gradient vector field ");
 
 
-
-
     /// ---- MORPHOLOGICAL SIMPLIFICATION --- ///        
     {
         Forman_Gradient_Simplifier forman_simplifier;
         forman_simplifier.set_filtration_vec(gradient_computation.get_filtration());
-
 
         cout<<"--- Topological features BEFORE simplification ---"<<endl;
         extract_features(tree, cli, forman_simplifier, forman_gradient,"before");
@@ -104,8 +93,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         cout<<"--- Morse Incidence Graph BEFORE simplification ---"<<endl;
         forman_simplifier.get_incidence_graph().init(); /// init again the base of the MIG
         forman_simplifier.extract_incidence_graph(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),OUTPUT,cli.cache_size); /// we force to keep the MIG structure
-        
-
+    
         Writer_Morse::write_incidence_graph_VTK(out.str(),"mig", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
                                           cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original); /// and we save it
 
@@ -113,33 +101,16 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         forman_simplifier.get_incidence_graph().print_stats(true);
         forman_simplifier.reset_stats();
         forman_simplifier.reset_output_structures(tree.get_mesh());
-        ///
-        /// then we execute effectively the topological simplification
-        ///
-        /// we have chosen a fully local simplification. i.e. the MIG is computed locally
-        if (cli.query_type==LOCAL_MORSE_SIMPLIFICATION)
-        {
-            cout<<"[LOCALLY] Simplify the forman gradient vector."<<endl;
-            time.start();
-            forman_simplifier.exec_local_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
-                                                                    cli.app_debug,cli.cache_size,cli.persistence);
-            time.stop();
-            time.print_elapsed_time("[TIME] simplify the gradient ");
-        }
-        else if(cli.query_type==GLOBAL_MORSE_SIMPLIFICATION){
 
-             cout<<"[GLOBALLY] Simplify the forman gradient vector."<<endl;
-                      time.start();
-            /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
-            /// default behaviour with alltime!
-            forman_simplifier.exec_global_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
-                                                                     cli.app_debug,cli.cache_size,cli.persistence);
-            time.stop();
-            time.print_elapsed_time("[TIME] simplify the gradient ");
-        }
+        cout<<"Simplify the forman gradient vector."<<endl;
+                    time.start();
+        /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
+        /// default behaviour with alltime!
+        forman_simplifier.exec_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
+                                                                cli.cache_size,cli.persistence);
+        time.stop();
+        time.print_elapsed_time("[TIME] simplify the gradient ");    
         forman_simplifier.print_simplification_stats();
-    
-
 
         ///
         /// then we compute again and output the simplified mig
@@ -273,7 +244,8 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
     Timer time;
     stringstream out;
     out << get_path_without_file_extension(cli.mesh_path);
-    out <<"_"<< file_name;
+    out <<"_"<< file_name<< "_";
+    out << cli.persistence;
     /// ---- DESCENDING 2 MANIFOLD EXTRACTION --- ///
     cout<<"[NOTA] Extract the descending 2 manifolds."<<endl;
     if(cli.app_debug == OUTPUT)
@@ -329,5 +301,57 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
             forman_simplifier.reset_timer_variables();
         }
     }
+
+            /// ---- DESCENDING 1 MANIFOLD EXTRACTION --- ///
+        cout<<"[NOTA] Extract the descending 1 manifolds."<<endl;
+        time.start();
+        forman_simplifier.extract_descending_1cells(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),tree.get_root(),
+                                                     cli.app_debug,cli.cache_size);
+        time.stop();
+
+        if(cli.app_debug == OUTPUT)
+        {
+            forman_simplifier.print_stats();
+            forman_simplifier.reset_stats();
+            Writer_Morse::write_desc1cells_VTK(out.str(),"desc1cells", cli.v_per_leaf,
+                                               forman_simplifier.get_extracted_cells(EDGE), tree.get_mesh(), cli.original_vertex_indices,
+                                               cli.original_vertex_fields,cli.rever_to_original);
+            forman_simplifier.reset_output_structures(tree.get_mesh());
+        }
+        else //get timings
+        {
+            time.print_elapsed_time("[TIME] extract descending 1-cells ");
+            if(cli.app_debug == TIME_VERBOSE)
+            {
+                forman_simplifier.print_feature_extraction_time();
+                forman_simplifier.reset_timer_variables();
+            }
+        }
+
+               /// ---- ASCENDING 1 MANIFOLD EXTRACTION --- ///
+        cout<<"[NOTA] Extract the ascending 1 manifolds."<<endl;
+        time.start();
+        forman_simplifier.extract_ascending_1cells(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),tree.get_root(),
+                                                    cli.app_debug,cli.cache_size);
+        time.stop();
+
+        if(cli.app_debug == OUTPUT)
+        {
+            forman_simplifier.print_stats();
+            forman_simplifier.reset_stats();
+            Writer_Morse::write_asc1cells_VTK(out.str(),"asc1cells", cli.v_per_leaf,
+                                              forman_simplifier.get_extracted_cells(TRIANGLE), tree.get_mesh(), cli.original_triangle_indices,
+                                              cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+            forman_simplifier.reset_output_structures(tree.get_mesh());
+        }
+        else //get timings
+        {
+            time.print_elapsed_time("[TIME] extract ascending 1-cells ");
+            if(cli.app_debug == TIME_VERBOSE)
+            {
+                forman_simplifier.print_feature_extraction_time();
+                forman_simplifier.reset_timer_variables();
+            }
+        }
 
 }

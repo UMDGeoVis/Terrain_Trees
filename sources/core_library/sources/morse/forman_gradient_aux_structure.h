@@ -266,6 +266,8 @@ public:
     inline leaf_ET::iterator find_ET(ivect &e) { return ets.find(e); }
     inline leaf_ET::iterator begin_ETs() { return ets.begin(); }
     inline leaf_ET::iterator end_ETs() { return ets.end(); }
+    inline void set_ETs(leaf_ET &new_ets) { ets = new_ets; }
+    inline void set_VTstars(leaf_VTstar &new_vtstars) { vtstars = new_vtstars; }
 };
 
 namespace forman_aux_structures {

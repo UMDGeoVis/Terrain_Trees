@@ -338,14 +338,11 @@ void Forman_Gradient_Topological_Relations::get_VTstar(leaf_VTstar &vtstars, Nod
 void Forman_Gradient_Topological_Relations::get_VTstar_ETstar(desc1rels &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient)
 {
     all_rels.init((n.get_v_end()-n.get_v_start()));
-
     ivect e;
-
     for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const& t_id = itPair.first;
         Triangle& t = mesh.get_triangle(*t_id);
-
         for(int v=0; v<t.vertices_num(); v++)
         {
             if(n.indexes_vertex(t.TV(v)))
@@ -360,14 +357,11 @@ void Forman_Gradient_Topological_Relations::get_VTstar_ETstar(desc1rels &all_rel
 void Forman_Gradient_Topological_Relations::get_VTstar_ET(local_VTstar_ET &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient)
 {
     all_rels.init((n.get_v_end()-n.get_v_start()));
-
     ivect e;
-
     for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const& t_id = itPair.first;
         Triangle& t = mesh.get_triangle(*t_id);
-
         for(int v=0; v<t.vertices_num(); v++)
         {
             //if vertex is in the leaf node, check VT*
@@ -401,12 +395,70 @@ void Forman_Gradient_Topological_Relations::get_VTstar_ET(local_VTstar_ET &all_r
     }
 }
 
+
+void Forman_Gradient_Topological_Relations::get_VTstar_ET(local_VTstar_ET &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient, mig_cache& cache)
+{
+    int key = n.get_v_start() + n.get_v_end();
+    auto ef_cache = cache.find_ef_lists(key);
+    all_rels.init((n.get_v_end() - n.get_v_start()));
+    bool has_ef_in_cache = false, has_vt_in_cache = false;
+    if(ef_cache != cache.end_et_cache())
+    {
+        has_ef_in_cache = true;
+        all_rels.set_ETs(ef_cache->second);
+    }
+    auto vt_cache = cache.find_vtstar_lists(key);
+    if(vt_cache != cache.end_vtstar_cache()){
+        has_vt_in_cache = true;
+        all_rels.set_VTstars(vt_cache->second);
+    }
+    if(has_ef_in_cache && has_vt_in_cache)
+        return;
+    ivect e;
+    for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
+    {
+        RunIterator const& t_id = itPair.first;
+        Triangle& t = mesh.get_triangle(*t_id);
+        for(int v=0; v < t.vertices_num(); v++)
+        {
+            //if vertex is in the leaf node, check VT*
+            if(!has_vt_in_cache && n.indexes_vertex(t.TV(v)))
+                Forman_Gradient_Topological_Relations::check_VTstar(t.TV(v),*t_id,t,all_rels.get_VTstars(),n.get_v_start(),mesh,gradient);
+            //the first 4 edge are checked into the vertices loop
+            t.TE(v,e);////corresponding edge
+            if(!has_ef_in_cache && n.indexes_vertex(e[1])) //if e[1] is in the current node, extract ET.
+            {
+                leaf_ET::iterator it = all_rels.find_ET(e);
+                if(it != all_rels.end_ETs())
+                {
+                    ET &inside = it->second;
+                    inside.second = *t_id;
+                    /// force the ordering <max,min>
+                    if(inside.first < inside.second)
+                    {
+                        itype tmp = inside.first;
+                        inside.first = inside.second;
+                        inside.second = tmp;
+                    }
+                }
+                else
+                {
+                    ET new_entry = make_pair(*t_id,-1);
+                    all_rels.add_ET(e,new_entry);
+                }
+            }
+        }
+    }
+    if(!has_ef_in_cache)
+        cache.add_ef_lists(key,all_rels.get_ETs());
+    if(!has_vt_in_cache)
+        cache.add_vtstar_lists(key,all_rels.get_VTstars());
+}
+
 void Forman_Gradient_Topological_Relations::get_VTstar_ET(local_VTstar_ET &all_rels, Node_T &n, itype v_start, itype v_end, Mesh& mesh, Forman_Gradient &gradient)
 {
     all_rels.init((v_end-v_start));
-
     ivect e;
-
     for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const& t_id = itPair.first;

@@ -288,9 +288,10 @@ protected:
                 ig.addArc(minimum,last_v,saddle_node,label,0);
             }
             else
-               { arc->setLabel(2); ///this edge cannot be simplified
-                 level2++;
-               }
+            { 
+                arc->setLabel(2); // this edge cannot be simplified since there are two different paths connected them, which means that they form a loop
+                level2++;
+            }
         }
     }
 
@@ -318,6 +319,7 @@ protected:
                 }
         }
     }
+    
     inline itype get_max_elevation_vertex(const ivect &vect)
     {
         if(vect.size() == 0)

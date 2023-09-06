@@ -62,6 +62,8 @@ public:
                                           ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_critical_clusters(string mesh_name, forman_aux_structures::critical_clusters &cc, Mesh &mesh);
 
+    static void write_asc1cells_OBJ(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_map &triangles, Mesh &mesh,
+                                     ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
 private:
     ///A constructor method
     Writer_Morse() {}
