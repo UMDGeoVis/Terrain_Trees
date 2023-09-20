@@ -1,4 +1,11 @@
-# Terrain Trees library #
+# PyTerrainTrees #
+The Python interface for the Terrain trees library. An example is provided in the sources/test.py. To compile and use it, you will need to install Cython first. Then the package can be built by running 
+```
+python3 setup.py build_ext --inplace
+```
+in sources folder. 
+
+### Terrain Trees library ###
 
 Terrain trees are a new in-core family of spatial indexes for the representation 
 and analysis of Triangulated Irregular Networks (TINs).
