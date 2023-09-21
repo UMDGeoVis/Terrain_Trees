@@ -115,11 +115,17 @@ public:
      * @param c_pos an integer representing the curvature position in the vertex array
      */
     static void write_mesh_curvature_VTK(string mesh_name, Mesh &mesh, string curvature_type, int c_pos);
-    static void write_mesh_roughness_VTK(string mesh_name, Mesh &mesh, int c_pos);
+    static void write_mesh_roughness_VTK(string mesh_name, Mesh &mesh, int c_pos, coord_type radius = 0, bool flatten = false);
+    static void write_roughness_txt(string mesh_name, Mesh &mesh, int c_pos, coord_type radius = 0);
+    static void write_elevation_txt(string mesh_name, Mesh &mesh);
+    
+
     static void write_mesh_gradient_VTK(string mesh_name, Mesh &mesh, int c_pos);
     static void write_mesh_multifield_VTK(string mesh_name, Mesh &mesh, int c_pos,string mode);
     static void write_tri_slope_VTK(string mesh_name, Mesh &mesh,map<itype,coord_type> slopes);
     
+    static void write_tri_area_VTK(string mesh_name, Mesh &mesh, dvect& areas);
+
     static void write_filtered_points_cloud(string mesh_name, Mesh &mesh); /// SpatialHadoop format
     static void write_filtered_points_cloud_with_id(string mesh_name, Mesh &mesh); /// SpatialHadoop format with vertex index
     static void write_multifield_points_cloud(string mesh_name, vertex_multifield &multifield, Mesh &mesh);
