@@ -57,7 +57,7 @@ private:
  
  //   dvect roughness;
    
-       leaf_VV_vec  vvs;
+   leaf_VV_vec  vvs;
    void roughness_leaf(Node_V& n, Mesh& mesh);
    void roughness_leaf(Node_T &n, Box &n_dom, Mesh &mesh);
 

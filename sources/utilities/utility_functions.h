@@ -33,6 +33,7 @@
 #include <string>
 #include <sstream>
 
+
 #include "geometry/geometry_wrapper.h"
 #include "io/reader.h"
 #include "io/writer_morse.h"
@@ -52,6 +53,7 @@
 #include "curvature/c_curvature.h"
 #include "curvature/border_checker.h"
 #include "roughness/Roughness.h"
+#include "roughness/Roughness_circle.h"
 #include "terrain_features/slope_extractor.h"
 #include "terrain_features/critical_points_extractor.h"
 #include "terrain_features/Aspect.h"
