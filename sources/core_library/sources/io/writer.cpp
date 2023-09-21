@@ -695,3 +695,26 @@ void Writer::write_tri_slope_VTK(string mesh_name, Mesh &mesh,map<itype,coord_ty
 
     output.close();
 }
+
+void Writer::write_mesh_OBJ(string mesh_name, Mesh& mesh)
+{
+    stringstream stream;
+    stream << mesh_name << ".obj";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+    output << "# Created by Terrain trees " << endl;
+    for(itype v = 1; v <= mesh.get_vertices_num(); v++)
+    {
+        Vertex& vert = mesh.get_vertex(v);
+        output<<"v " << vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_z()<<endl;
+    }
+    for(itype t = 1; t <= mesh.get_triangles_num(); t++){
+        output<<"f ";
+        for(int i=0; i< mesh.get_triangle(t).vertices_num(); i++)
+            output<< mesh.get_triangle(t).TV(i) <<" ";
+        output<<endl;
+    }
+
+    output.close();
+}

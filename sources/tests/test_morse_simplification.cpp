@@ -7,9 +7,12 @@ Test file for topological simplification module. Currently only the global versi
 using namespace utility_functions;
 
 template<class T> void load_tree(T& tree, cli_parameters &cli);
-template<class T> void morse_simplification(T& tree, cli_parameters &cli);
+template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct);
 template<class T> void load_terrain(T& tree, cli_parameters &cli);
 template<class T> void extract_features(T& tree, cli_parameters &cli, Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name);
+Point standarize_input(Mesh& mesh, coord_type& mode_to_correct);
+void reverse_mesh_coordinates(Mesh& mesh);
+
 
 int main(int argc, char** argv )
 {
@@ -20,6 +23,7 @@ int main(int argc, char** argv )
     cli.v_per_leaf = atoi(argv[2]);
 	cli.app_debug = OUTPUT;
 	cli.persistence = atof(argv[3]);
+    coord_type mode_to_correct = atof(argv[4]);
 
     
     cerr<<"[OBJECTIVE] this unit-test generates a quadtrees based on the PR-T tree criterion. "
@@ -32,7 +36,7 @@ int main(int argc, char** argv )
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cerr<<"[GENERATION] PR-T tree"<<endl;
 
-    morse_simplification(ptree,cli);    
+    morse_simplification(ptree,cli, mode_to_correct);    
 
     return (EXIT_SUCCESS);
 }
@@ -45,17 +49,16 @@ template<class T> void load_terrain(T& tree, cli_parameters &cli)
         cout << "[ERROR] Loading mesh file. Execution Stopped." << endl;
         return;
     }
-
     cerr << "[MEMORY] peak for Indexing the terrain: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 }
 
-template<class T> void morse_simplification(T& tree, cli_parameters &cli)
+template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct)
 {
     stringstream out;
     out << get_path_without_file_extension(cli.mesh_path);
-
+    out << "_" << cli.persistence;
     load_terrain(tree,cli);
-
+    Point origin  = standarize_input(tree.get_mesh(), mode_to_correct);
 
     //CALCOLO IL FORMAN GRADIENT VECTOR
     Forman_Gradient forman_gradient = Forman_Gradient(tree.get_mesh().get_triangles_num());
@@ -70,6 +73,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
 
     load_tree(tree,cli);
 
+    // reverse_mesh_coordinates(tree.get_mesh(), origin);
     /// ---- FORMAN GRADIENT COMPUTATION --- ///
     gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
 
@@ -85,8 +89,8 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         Forman_Gradient_Simplifier forman_simplifier;
         forman_simplifier.set_filtration_vec(gradient_computation.get_filtration());
 
-        cout<<"--- Topological features BEFORE simplification ---"<<endl;
-        extract_features(tree, cli, forman_simplifier, forman_gradient,"before");
+        // cout<<"--- Topological features BEFORE simplification ---"<<endl;
+        // extract_features(tree, cli, forman_simplifier, forman_gradient,"before");
         ///
         /// firstly we extract the MIG
         ///
@@ -122,11 +126,8 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli)
         forman_simplifier.get_incidence_graph().print_stats(true);
         forman_simplifier.reset_stats();
 
-        if(cli.query_type==LOCAL_MORSE_SIMPLIFICATION)
-        Writer_Morse::write_incidence_graph_VTK(out.str(),"simplified_mig_local", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
-                                          cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
-        else if (cli.query_type==GLOBAL_MORSE_SIMPLIFICATION)
-         Writer_Morse::write_incidence_graph_VTK(out.str(),"simplified_mig_global", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
+     
+        Writer_Morse::write_incidence_graph_VTK(out.str(),"simplified_mig", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
                                           cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
 
         forman_simplifier.reset_output_structures(tree.get_mesh());
@@ -205,6 +206,7 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
 
             Writer::write_tree_VTK(out2.str(),tree.get_root(),tree.get_subdivision(),tree.get_mesh());
             // Writer::write_mesh_VTK(base.str(),tree.get_mesh());
+            Writer::write_mesh_OBJ(base.str(),tree.get_mesh());
         }
     }
 
@@ -246,6 +248,7 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
     out << get_path_without_file_extension(cli.mesh_path);
     out <<"_"<< file_name<< "_";
     out << cli.persistence;
+    /*
     /// ---- DESCENDING 2 MANIFOLD EXTRACTION --- ///
     cout<<"[NOTA] Extract the descending 2 manifolds."<<endl;
     if(cli.app_debug == OUTPUT)
@@ -327,7 +330,7 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
                 forman_simplifier.reset_timer_variables();
             }
         }
-
+*/
                /// ---- ASCENDING 1 MANIFOLD EXTRACTION --- ///
         cout<<"[NOTA] Extract the ascending 1 manifolds."<<endl;
         time.start();
@@ -339,8 +342,22 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
         {
             forman_simplifier.print_stats();
             forman_simplifier.reset_stats();
-            Writer_Morse::write_asc1cells_VTK(out.str(),"asc1cells", cli.v_per_leaf,
-                                              forman_simplifier.get_extracted_cells(TRIANGLE), tree.get_mesh(), cli.original_triangle_indices,
+            auto extracted_cells = forman_simplifier.get_extracted_cells(TRIANGLE);
+
+            Sea_Ice_Processor processor(extracted_cells);
+            auto updated_cells = processor.get_processed_triangles(/*mode = */0, tree.get_mesh());
+            
+
+            Writer_Morse::write_asc1cells_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
+                                              , tree.get_mesh(), cli.original_triangle_indices,
+                                              cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+            // Writer_Morse::write_asc1cells_OBJ(out.str(),"asc1cells", cli.v_per_leaf,
+            //                                   forman_simplifier.get_extracted_cells(TRIANGLE), tree.get_mesh(), cli.original_triangle_indices,
+            //                                   cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+            Writer_Morse::write_asc1cells_CSV(out.str(),"asc1cells", cli.v_per_leaf,
+                                              updated_cells, tree.get_mesh(), cli.original_triangle_indices,
+                                              cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+            Writer_Morse::write_asc1cells_vertices_CSV(out.str(),"asc1cells", cli.v_per_leaf, updated_cells, tree.get_mesh(), cli.original_triangle_indices,
                                               cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
             forman_simplifier.reset_output_structures(tree.get_mesh());
         }
@@ -355,3 +372,40 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
         }
 
 }
+
+Point standarize_input(Mesh& mesh, coord_type& mode_to_correct)
+{
+    if(mesh.get_vertices_num() == 0) return Point();
+    Point origin = mesh.get_vertex(1);
+
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        Vertex old = mesh.get_vertex(i);
+        // mesh.get_vertex(i).set_c(0, old.get_x() - origin.get_x());
+        // mesh.get_vertex(i).set_c(1, old.get_y() - origin.get_y());
+        mesh.get_vertex(i).set_c(2, old.get_z() - mode_to_correct);
+    }
+    // Box old_domain = mesh.get_domain();
+    // cout<<"Original data domain:"<< old_domain.get_min() <<" -- "<<old_domain.get_max()<<endl;
+    // Point new_min = old_domain.get_min() - origin;
+    // Point new_max = old_domain.get_max() - origin;
+    // old_domain = Box(new_min, new_max);
+    // mesh.set_domain(old_domain);
+    return origin;
+}
+
+void reverse_mesh_coordinates(Mesh& mesh, const Point& origin)
+{
+
+    for(int i = 1; i <= mesh.get_vertices_num(); i++){
+        Vertex old = mesh.get_vertex(i);
+        mesh.get_vertex(i).set_c(0, old.get_x() + origin.get_x());
+        mesh.get_vertex(i).set_c(1, old.get_y() + origin.get_y());
+        mesh.get_vertex(i).set_c(2, old.get_z());
+    }
+    Box old_domain = mesh.get_domain();
+    Point new_min = old_domain.get_min() + origin;
+    Point new_max = old_domain.get_max() + origin;
+    old_domain = Box(new_min, new_max);
+    mesh.set_domain(old_domain);
+}
+

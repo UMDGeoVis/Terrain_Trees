@@ -498,14 +498,14 @@ void Forman_Gradient_Topological_Relations::get_VTstar_ET(local_VTstar_ET &all_r
 
 void Forman_Gradient_Topological_Relations::get_VTstar_VV(asc2rels &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient)
 {
-    all_rels.init((n.get_v_end()-n.get_v_start()));
+    all_rels.init((n.get_v_end() - n.get_v_start()));
 
     for(RunIteratorPair itPair = n.make_t_array_iterator_pair(); itPair.first != itPair.second; ++itPair.first)
     {
         RunIterator const& t_id = itPair.first;
         Triangle& t = mesh.get_triangle(*t_id);
 
-        for(int v=0; v<t.vertices_num(); v++)
+        for(int v=0; v < t.vertices_num(); v++)
         {
             itype v_id = t.TV(v);
             if(n.indexes_vertex(t.TV(v)))
@@ -532,6 +532,10 @@ bool Forman_Gradient_Topological_Relations::check_VTstar(itype v_id, itype t_id,
         return false;
     }
 
+    if(t.vertex_index(v_id) == -1 ){
+      cerr << "check_VTstar for vertex " << v_id << " and triangle "<< t << " is wrong."<<endl;
+    }   
+
     TriGradient t_grad = gradient.convert_compressed_to_expand(t_id);
     //if in the current top simplex the vertex is unpaired.. nothing to do
     if(t_grad.is_vertex_unpaired(t.vertex_index(v_id)))
@@ -540,6 +544,9 @@ bool Forman_Gradient_Topological_Relations::check_VTstar(itype v_id, itype t_id,
     Triangle &first_t = mesh.get_triangle(vtstars[v_pos]);
     TriGradient t_grad_first = gradient.convert_compressed_to_expand(vtstars[v_pos]);
 
+    if(first_t.vertex_index(v_id) == -1 ){
+      cerr << "check_VTstar for vertex " << v_id << " and first triangle "<< first_t << " is wrong."<<endl;
+    }   
     //if we arrive here the current top simplex has the vertex paired
     //I have only to check if the first one has the vertex unpaired
     if(t_grad_first.is_vertex_unpaired(first_t.vertex_index(v_id)))

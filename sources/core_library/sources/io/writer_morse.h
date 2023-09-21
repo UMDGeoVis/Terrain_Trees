@@ -24,24 +24,9 @@
 #ifndef _WRITER_MORSE_H
 #define	_WRITER_MORSE_H
 
-//#include <string>
-//#include <set>
 
-//#include <fstream>
-//#include <queue>
-//#include <iostream>
-//#include <boost/function.hpp>
-
-//#include "terrain_trees/tree.h"
-//#include "statistics/index_statistics.h"
-//#include "statistics/full_query_statistics.h"
-//#include "basic_types/box.h"
-
-//#include "terrain_trees/node_v.h"
-//#include "terrain_trees/node_t.h"
 
 #include "io/writer.h"
-
 #include "morse/forman_gradient_aux_structure.h"
 #include "morse/ig.h"
 
@@ -50,11 +35,11 @@ using namespace std;
 ///A class that provides an interface for writing to file or standard output some data structures or statistics
 class Writer_Morse : public Writer {
 public:
-    static void write_asc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_map &triangles, Mesh &mesh,
+    static void write_asc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_desc2cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, ivect &segmentation, Mesh &mesh,
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
-    static void write_desc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_map &edges, Mesh &mesh,
+    static void write_desc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &edges, Mesh &mesh,
                                      ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_asc2cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, ivect &segmentation, Mesh &mesh,
                                     ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
@@ -62,7 +47,11 @@ public:
                                           ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_critical_clusters(string mesh_name, forman_aux_structures::critical_clusters &cc, Mesh &mesh);
 
-    static void write_asc1cells_OBJ(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_map &triangles, Mesh &mesh,
+    static void write_asc1cells_OBJ(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
+                                     ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
+    static void write_asc1cells_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
+                                     ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
+    static void write_asc1cells_vertices_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
 private:
     ///A constructor method

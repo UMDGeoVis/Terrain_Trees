@@ -532,7 +532,7 @@ template<class T> void morse_features_extraction_and_simplification(T& tree, cli
             cout<<"[GLOBALLY] Simplify the forman gradient vector."<<endl;
             /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
             /// default behaviour with alltime!
-            forman_simplifier.exec_global_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
+            forman_simplifier.exec_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
                                                                      cli.app_debug,cli.cache_size,cli.persistence);
         }
 

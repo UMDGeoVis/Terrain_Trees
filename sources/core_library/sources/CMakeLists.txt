@@ -8,9 +8,9 @@ set(INCLUDE_DIRS
 		terrain_trees
 		utilities
 		morse
-    roughness
-    gradient
-
+		roughness
+		gradient
+		apps
 	)
 	
 INCLUDE_DIRECTORIES( ${INCLUDE_DIRS} )
@@ -76,6 +76,11 @@ file(GLOB MORSE_SRC
         morse/*.cpp
 	)
 
+file(GLOB GEOG_APPS_SRC
+		apps/*.h
+		apps/*.cpp
+)
+
 set(TERRAIN_TREES_CORE_SRC
         ${BASIC_TYPES_SRC}
 		${GEOMETRY_SRC}
@@ -88,10 +93,11 @@ set(TERRAIN_TREES_CORE_SRC
 set(TERRAIN_TREES_APPS_SRC
                 ${CURVATURE_SRC}
                 ${ROUGHNESS_SRC}
-		${GRADIENT_SRC}
+				${GRADIENT_SRC}
                 ${QUERIES_SRC}
                 ${TERRAIN_FEATURES_SRC}
 				${MORSE_SRC}
+				${GEOG_APPS_SRC}
         )
 
 add_library(_terrain_trees_core ${TERRAIN_TREES_CORE_SRC})

@@ -69,7 +69,8 @@ unsigned int popcount(T v)
 }
 }
 
-//typedef unsigned int uint;
+typedef unsigned int uint;
+typedef unsigned short ushort;
 #define CASES 512
 #define OUTSIDECASES 1000
 
@@ -203,7 +204,7 @@ typedef set<quadruple> set_asc_quadruple;
 typedef map<utype,set_asc_quadruple> leaves_1_asc_mig_map;
 
 typedef map<ivect, itype> simplices_map;
-
+typedef map<ivect, ivect> simplices_multimap;
 /// used by MIG -- start -- ///
 typedef set<desc1_mig_quadruple> set_1paths;
 typedef map<utype,set_1paths> leaves_1_desc_mig_map;

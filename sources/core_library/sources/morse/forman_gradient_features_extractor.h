@@ -40,8 +40,8 @@ public:
         u_paths = 0;
         cache_t = 0;
         rels_gathering = 0;
-        triangles_2celle = simplices_map();
-        edges_1celle = simplices_map();
+        triangles_2celle = simplices_multimap();
+        edges_1celle = simplices_multimap();
 
         found_max = /*found_2selle =*/ found_1selle = found_min = 0;
     }
@@ -84,7 +84,7 @@ public:
     inline void init_ascending_segmentation_vector(Mesh &mesh) { manifold_2celle_asc  = ivect(mesh.get_vertices_num(), -1); }
     inline ivect& get_ascending_segmentation() { return manifold_2celle_asc; }
 
-    inline simplices_map& get_extracted_cells(TopType cell_type)
+    inline simplices_multimap& get_extracted_cells(TopType cell_type)
     {
         if(cell_type == TRIANGLE)
             return triangles_2celle;
@@ -129,8 +129,8 @@ public:
 protected:    
     /// variables neede for output purposes
     ivect segmentation;
-    simplices_map triangles_2celle;
-    simplices_map edges_1celle;
+    simplices_multimap triangles_2celle;
+    simplices_multimap edges_1celle;
     ivect manifold_2celle_asc;
     IG forman_ig;
     uvect filtration; //for each vertex its filtration value

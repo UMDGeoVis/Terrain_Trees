@@ -106,6 +106,9 @@ public:
      * @param mesh representing the triangle mesh to save
      */
     static void write_mesh_VTK(string mesh_name, Mesh &mesh);
+
+    static void write_mesh_OBJ(string mesh_name, Mesh& mesh);
+
     /**
      * @brief A public method that writes to file a triangle mesh and the curvature values in VTK format
      *

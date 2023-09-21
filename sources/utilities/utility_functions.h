@@ -64,6 +64,8 @@
 #include "utilities/cli_parameters.h"
 #include "utilities/usage.h"
 
+#include "apps/sea_ice_processor.h"
+
 using namespace std;
 using namespace string_management;
 

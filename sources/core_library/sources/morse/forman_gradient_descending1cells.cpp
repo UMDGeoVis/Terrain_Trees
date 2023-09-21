@@ -125,7 +125,8 @@ void Forman_Gradient_Features_Extractor::get_new_descending_1cells(Node_V &n, Me
             Edge* crit_edge  = new Edge(it_e->first[0],it_e->first[1]);
             if(operation == OUTPUT)
             {
-                edges_1celle.insert(make_pair(it_e->first,it_e->first[0]));
+                edges_1celle[it_e->first].push_back(it_e->first[0]);
+                // edges_1celle.insert(make_pair(it_e->first,it_e->first[0]));
             }
             get_one_descending_1cells(n, crit_edge, mesh, gradient, it_e->first[0], all_rels, root, division, operation, dangling_paths, cache);
         }
@@ -184,7 +185,8 @@ void Forman_Gradient_Features_Extractor::get_one_descending_1cells(Node_V &n, Ed
                         if(operation == OUTPUT)
                         {
                             ivect tmp = { edg->EV(0), edg->EV(1) };
-                            edges_1celle.insert(make_pair(tmp,label));
+                            edges_1celle[tmp].push_back(label);
+                            // edges_1celle.insert(make_pair(tmp,label));
                         }
                         coda.push(edg);
                     }
