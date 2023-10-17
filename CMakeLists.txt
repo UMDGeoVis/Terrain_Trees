@@ -16,8 +16,11 @@ set(CMAKE_BUILD_TYPE debug)
 
 #new:
 find_package (Eigen3 3.3 REQUIRED)
-include_directories(/usr/include/eigen3/)
+include_directories(/opt/homebrew/opt/eigen/include/eigen3)
 #end
+
+# Boost directory:
+include_directories(/opt/homebrew/opt/boost@1.81/include)
 
 #~ find_package(Boost REQUIRED)
 #~ find_package(Doxygen REQUIRED)   
@@ -88,8 +91,11 @@ target_link_libraries(test_multivariate_morse _terrain_trees_apps)
 add_executable(test_morse_simplification EXCLUDE_FROM_ALL sources/tests/test_morse_simplification.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_morse_simplification _terrain_trees_apps)
 
+add_executable(test_roughness_range EXCLUDE_FROM_ALL sources/tests/test_roughness_range.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
+target_link_libraries(test_roughness_range _terrain_trees_apps)
 
 add_custom_target(tests DEPENDS test_index_generation test_curvature test_soup test_batched_queries test_terrain_feature_extraction test_gradient test_all_operations test_roughness test_soup test_batched_queries test_terrain_feature_extraction test_spatial_queries test_index_and_VT  test_morse test_morse_simplification test_multivariate_morse)
 
+add_custom_target(sea_ice DEPENDS test_roughness_range test_morse_simplification)
 
 

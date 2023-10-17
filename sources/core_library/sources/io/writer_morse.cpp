@@ -657,6 +657,33 @@ void Writer_Morse::write_asc1cells_CSV(string mesh_name, string operation_type, 
     output.close();
 }
 
+void Writer_Morse::write_asc1cells_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
+                                     ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field){
+                                           stringstream stream;
+    stream << mesh_name << "_kv_" << vertices_per_leaf << "_" << operation_type << "_wkt.csv";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+    output <<"tid, geometry, label"<<endl;
+    int tid = 1;
+   
+    for (simplices_multimap::iterator it = triangles.begin(); it != triangles.end(); it++)
+    {
+        output << tid << ", \"POLYGON ((";
+        for(int i = 0; i < 3; i++){
+            auto vid = it->first[i];
+            Vertex &vert = mesh.get_vertex(vid);
+            output << vert.get_x() <<" "<< vert.get_y();
+            if(i != 2) {
+                output << ", ";
+            }
+        }
+        output << "))\", " << it->second[0] << endl;
+        tid++;
+    }
+    output.close(); 
+}
+
 void Writer_Morse::write_asc1cells_vertices_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                        ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field)
 {

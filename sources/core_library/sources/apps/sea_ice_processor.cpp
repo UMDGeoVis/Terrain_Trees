@@ -11,7 +11,7 @@ simplices_multimap Sea_Ice_Processor::get_processed_triangles(coord_type mode, M
             simplex = extracted_triangles.erase(simplex);
             continue;
         }
-        size_of_simplices[tid] = 1;
+        size_of_simplices[tid] = compute_tri_area(simplex->first, mesh);
         root_of_simplices[tid] = tid;
         simplex->second[0] = tid;
         for(int k = 0; k < 3; k++){
@@ -81,7 +81,7 @@ void Sea_Ice_Processor::update_label(){
     for(auto simplex = extracted_triangles.begin(); simplex != extracted_triangles.end(); ){
         itype root = find_root(simplex->second[0]);
         // cout << root << " size: "<<size_of_simplices[root]<<endl;
-        if( size_of_simplices[root] <= 10){
+        if( size_of_simplices[root] <= 50){
             simplex = extracted_triangles.erase(simplex);
         }else{
             simplex->second[0] = root;

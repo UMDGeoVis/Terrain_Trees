@@ -349,6 +349,31 @@ void Writer::write_roughness_txt(string mesh_name, Mesh &mesh, int c_pos, coord_
     output.close();
 }
 
+void Writer::write_count_txt(string mesh_name, Mesh &mesh, int c_pos, coord_type radius)
+{
+    stringstream stream;
+
+    stream<<mesh_name;
+    if(radius != 0)
+    {
+        stream<< "_" << int(radius);
+    }
+    stream<<"_count.txt";
+
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+
+    for(itype v=1; v<=mesh.get_vertices_num(); v++)
+    {
+        Vertex& vert = mesh.get_vertex(v);
+        output<<vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_field(c_pos)<<endl;
+    }
+    output<<endl;
+
+    output.close();
+}
+
 void Writer::write_mesh_gradient_VTK(string mesh_name, Mesh &mesh,int c_pos/*, dvect &curvatures*/)
 {
     stringstream stream;
@@ -699,7 +724,7 @@ void Writer::write_field_csv(string mesh_name, Mesh& mesh){
 
 void Writer::write_tri_slope_VTK(string mesh_name, Mesh &mesh,map<itype,coord_type> slopes)
 {
-  stringstream stream;
+    stringstream stream;
     stream<<mesh_name<<"_slope_.vtk";
     ofstream output(stream.str().c_str());
     output.unsetf( std::ios::floatfield ); // floatfield not set
@@ -769,6 +794,66 @@ void Writer::write_mesh_OBJ(string mesh_name, Mesh& mesh)
 
     output.close();
 }
+
+void Writer::write_mesh_WKT_CSV(string mesh_name, Mesh& mesh){
+    stringstream stream;
+    stream << mesh_name << "_wkt.csv";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+    output <<"tid, geometry, avg_elevation"<<endl;
+    for(itype tid = 1; tid <= mesh.get_triangles_num(); tid++){
+        output << tid << ", \"POLYGON ((";
+        Triangle t = mesh.get_triangle(tid);
+        coord_type avg_elevation = 0;
+        for(int i = 0; i < 3; i++){
+            auto vid = t.TV(i);
+            Vertex &vert = mesh.get_vertex(vid);
+            output << vert.get_x() <<" "<< vert.get_y();
+            if(i != 2) {
+                output << ", ";
+            }
+            avg_elevation += vert.get_z();
+        }
+        output << "))\", " << avg_elevation/3 << endl;
+    }
+    output.close(); 
+}
+
+void Writer::write_mesh_with_field_PLY(string mesh_name, Mesh &mesh, int c_pos, string field_name){
+    stringstream stream;
+    stream<<mesh_name<<"_"<< field_name <<".ply";
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+    output << "ply" << endl;
+    output << "format ascii 1.0" << endl;
+    output << "element vertex " << mesh.get_vertices_num() << endl;
+    output << "property double x" << endl;
+    output << "property double y" << endl;
+    output << "property double z" << endl;
+    output << "property double " << field_name << endl;
+    output << "element face " << mesh.get_triangles_num() << endl;
+    output << "property list uint8 uint32 vertex_indices" << endl;
+    output << "end_header"<<endl;
+    for(itype v = 1; v <= mesh.get_vertices_num(); v++)
+    {
+        Vertex& vert = mesh.get_vertex(v);
+        output << vert.get_x() << " " << vert.get_y() << " " << vert.get_z()
+        << " " << vert.get_field(c_pos)<<endl;
+    }
+    for(itype t = 1; t <= mesh.get_triangles_num(); t++)
+    {
+        output<<"3 ";
+        for(int i = 0; i < mesh.get_triangle(t).vertices_num(); i++)
+            output<<mesh.get_triangle(t).TV(i)-1<<" ";
+        output<<endl;
+    }
+    output << endl;
+    output.close();
+
+}
+
 void Writer::write_elevation_txt(string mesh_name, Mesh &mesh)
 {
     stringstream stream;

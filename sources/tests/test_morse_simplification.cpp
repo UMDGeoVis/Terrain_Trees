@@ -7,11 +7,11 @@ Test file for topological simplification module. Currently only the global versi
 using namespace utility_functions;
 
 template<class T> void load_tree(T& tree, cli_parameters &cli);
-template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct);
+template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct, double& area_limit);
 template<class T> void load_terrain(T& tree, cli_parameters &cli);
-template<class T> void extract_features(T& tree, cli_parameters &cli, Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name);
+template<class T> void extract_features(T& tree, cli_parameters &cli, Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name, double& area_limit);
 Point standarize_input(Mesh& mesh, coord_type& mode_to_correct);
-void reverse_mesh_coordinates(Mesh& mesh);
+void reverse_mesh_coordinates(Mesh& mesh, const Point& origin);
 
 
 int main(int argc, char** argv )
@@ -25,7 +25,7 @@ int main(int argc, char** argv )
 	cli.persistence = atof(argv[3]);
     coord_type mode_to_correct = atof(argv[4]);
 
-    
+    coord_type area_limit = atof(argv[5]);
     cerr<<"[OBJECTIVE] this unit-test generates a quadtrees based on the PR-T tree criterion. "
 	    <<"then, it saves the index and the mesh in VTK format for visualization purposes and finally "
 		<<"it computes the Morse gradient vector and simplifies it, outputting the initial Morse IG and the simplified one in VTK format."<<endl;
@@ -36,7 +36,7 @@ int main(int argc, char** argv )
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cerr<<"[GENERATION] PR-T tree"<<endl;
 
-    morse_simplification(ptree,cli, mode_to_correct);    
+    morse_simplification(ptree,cli, mode_to_correct, area_limit);    
 
     return (EXIT_SUCCESS);
 }
@@ -52,11 +52,12 @@ template<class T> void load_terrain(T& tree, cli_parameters &cli)
     cerr << "[MEMORY] peak for Indexing the terrain: " << to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 }
 
-template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct)
+template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_type& mode_to_correct, double& area_limit)
 {
     stringstream out;
     out << get_path_without_file_extension(cli.mesh_path);
     out << "_" << cli.persistence;
+    out << "_a" << area_limit;
     load_terrain(tree,cli);
     Point origin  = standarize_input(tree.get_mesh(), mode_to_correct);
 
@@ -134,7 +135,7 @@ template<class T> void morse_simplification(T& tree, cli_parameters &cli, coord_
         forman_simplifier.reset_timer_variables();
 
         cout<<"--- Topological features AFTER simplification ---"<<endl;
-        extract_features(tree, cli, forman_simplifier, forman_gradient, "after");
+        extract_features(tree, cli, forman_simplifier, forman_gradient, "after", area_limit);
     }
 }
 
@@ -206,7 +207,8 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
 
             Writer::write_tree_VTK(out2.str(),tree.get_root(),tree.get_subdivision(),tree.get_mesh());
             // Writer::write_mesh_VTK(base.str(),tree.get_mesh());
-            Writer::write_mesh_OBJ(base.str(),tree.get_mesh());
+            // Writer::write_mesh_OBJ(base.str(),tree.get_mesh());
+            // Writer::write_mesh_WKT_CSV(base.str(),tree.get_mesh());
         }
     }
 
@@ -240,7 +242,7 @@ template<class T> void load_tree(T& tree, cli_parameters &cli)
     }
 }
 
-template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name)
+template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Gradient_Simplifier& forman_simplifier, Forman_Gradient& forman_gradient, string file_name, double& area_limit)
 {
     /// --- TOPOLOGY FEATURE EXTRACTION --- ///
     Timer time;
@@ -248,6 +250,7 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
     out << get_path_without_file_extension(cli.mesh_path);
     out <<"_"<< file_name<< "_";
     out << cli.persistence;
+    out << "_a"<<area_limit;
     /*
     /// ---- DESCENDING 2 MANIFOLD EXTRACTION --- ///
     cout<<"[NOTA] Extract the descending 2 manifolds."<<endl;
@@ -344,7 +347,7 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
             forman_simplifier.reset_stats();
             auto extracted_cells = forman_simplifier.get_extracted_cells(TRIANGLE);
 
-            Sea_Ice_Processor processor(extracted_cells);
+            Sea_Ice_Processor processor(extracted_cells, area_limit);
             auto updated_cells = processor.get_processed_triangles(/*mode = */0, tree.get_mesh());
             
 
@@ -354,7 +357,7 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
             // Writer_Morse::write_asc1cells_OBJ(out.str(),"asc1cells", cli.v_per_leaf,
             //                                   forman_simplifier.get_extracted_cells(TRIANGLE), tree.get_mesh(), cli.original_triangle_indices,
             //                                   cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
-            Writer_Morse::write_asc1cells_CSV(out.str(),"asc1cells", cli.v_per_leaf,
+            Writer_Morse::write_asc1cells_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf,
                                               updated_cells, tree.get_mesh(), cli.original_triangle_indices,
                                               cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
             Writer_Morse::write_asc1cells_vertices_CSV(out.str(),"asc1cells", cli.v_per_leaf, updated_cells, tree.get_mesh(), cli.original_triangle_indices,

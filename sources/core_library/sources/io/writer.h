@@ -108,7 +108,7 @@ public:
     static void write_mesh_VTK(string mesh_name, Mesh &mesh);
 
     static void write_mesh_OBJ(string mesh_name, Mesh& mesh);
-
+    static void write_mesh_WKT_CSV(string mesh_name, Mesh& mesh);
     /**
      * @brief A public method that writes to file a triangle mesh and the curvature values in VTK format
      *
@@ -121,7 +121,9 @@ public:
     static void write_mesh_roughness_VTK(string mesh_name, Mesh &mesh, int c_pos, coord_type radius = 0, bool flatten = false);
     static void write_roughness_txt(string mesh_name, Mesh &mesh, int c_pos, coord_type radius = 0);
     static void write_elevation_txt(string mesh_name, Mesh &mesh);
-    
+    static void write_count_txt(string mesh_name, Mesh &mesh, int c_pos, coord_type radius);
+
+    static void write_mesh_with_field_PLY(string mesh_name, Mesh &mesh, int c_pos, string field_name);
 
     static void write_mesh_gradient_VTK(string mesh_name, Mesh &mesh, int c_pos);
     static void write_mesh_multifield_VTK(string mesh_name, Mesh &mesh, int c_pos,string mode);
