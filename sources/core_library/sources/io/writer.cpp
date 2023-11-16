@@ -342,7 +342,7 @@ void Writer::write_roughness_txt(string mesh_name, Mesh &mesh, int c_pos, coord_
     for(itype v=1; v<=mesh.get_vertices_num(); v++)
     {
         Vertex& vert = mesh.get_vertex(v);
-        output<<vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_field(c_pos)<<endl;
+        output<<vert.get_x()<<" "<<vert.get_y()<<" "<<vert.get_z() <<" "<<vert.get_field(c_pos)<<endl;
     }
     output<<endl;
 
@@ -918,4 +918,20 @@ void Writer::write_tri_area_VTK(string mesh_name, Mesh &mesh, dvect& areas)
     }
 
     output<<endl;
+}
+
+void Writer::write_interpolation_results(string mesh_name, vector<coord_type> elevations, vector<Point> query_points, vector<bool> intersect_result){
+    stringstream stream;
+    stream<<mesh_name<<"_interpolation.txt";
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+    int count = 0;
+    for(int i = 0; i < elevations.size(); i++){
+        if(intersect_result[i] == false) continue;
+        output << query_points[i].get_x() << " "<< query_points[i].get_y() <<" "<< elevations[i] << endl;
+        count++;
+    }
+    cout <<count<<" points have valid elevations."<<endl;
+    output.close();
 }

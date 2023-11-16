@@ -99,6 +99,7 @@ public:
     template<class T> void exec_incremental_nearest_neighbor_queries(T& tree, set<Point> &points, Point_Type key,
                                                                      vector<Point_Type> &critical_points);
 
+    template<class T> bool exec_point_interpolation(T& tree, Point& p, Mesh& mesh, Spatial_Subdivision& division, coord_type& result);
 private:
     ///A private method that executes a single point location on a Terrain tree
     /*!
@@ -384,6 +385,14 @@ template<class N> void Spatial_Queries::exec_point_query_leaf(N &n, Point &p, Qu
         }
     }
 }
+
+template<class T> bool Spatial_Queries::exec_point_interpolation(T& tree,  Point& p, Mesh& mesh, Spatial_Subdivision& division, coord_type& result){
+    QueryStatistics qS;
+    this->exec_point_query(tree.get_root(),tree.get_mesh().get_domain(),0,p,qS, tree.get_mesh(), tree.get_subdivision());
+    if(qS.triangles.size() == 0) return false;
+    result = Geometry_Wrapper::elevation_interpolate_tri(qS.triangles[0], p, tree.get_mesh());
+    return true;
+}   
 
 template<class N> void Spatial_Queries::exec_box_query(N &n, Box &dom, int level, Box &b, QueryStatistics &qS, Mesh &mesh, Spatial_Subdivision &division, bool get_stats)
 {

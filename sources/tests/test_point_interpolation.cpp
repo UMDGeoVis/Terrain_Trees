@@ -3,26 +3,13 @@
 using namespace utility_functions;
 
 template<class T> void load_tree(T& tree, cli_parameters &cli, coord_type& mode_to_correct, Point& origin);
-template<class T> void compute_roughness(T& tree, cli_parameters &cli, coord_type& radius, const Point& origin);
-Point standarize_input(Mesh& mesh, coord_type& radius);
-void reverse_mesh_coordinates(Mesh& mesh, const Point& origin);
+template<class T> void compute_interpolated_elevations(T& tree, cli_parameters &cli, const Point& origin, string& point_file_path);
+Point standarize_input_mesh(Mesh& mesh, coord_type& mode_to_correct);
+// void reverse_mesh_coordinates(Mesh& mesh, const Point& origin);
 void output_triangle_area(Mesh& mesh, string path);
-coord_type compute_area(Triangle& t, Mesh& mesh){
-    coord_type area;
-    
-    Vertex &vi = mesh.get_vertex(t.TV(0));
-    Vertex &vj = mesh.get_vertex(t.TV(1));
-    Vertex &vk = mesh.get_vertex(t.TV(2));
+void standarize_input_points(vector<Point>& query_points, const Point& reference_origin);
+void reverse_input(vector<Point>& query_points,  const Point& reference_origin);
 
-    dvect ki={vi.get_x()-vk.get_x(),vi.get_y()-vk.get_y()};
-    dvect ij={vj.get_x()-vi.get_x(),vj.get_y()-vi.get_y()};
-        // compute the vectors of the edges after rotate by 90 degrees
-    dvect ki_vert= { vk.get_y()-vi.get_y() , vi.get_x()-vk.get_x()};
-    dvect ij_vert= {vi.get_y()-vj.get_y() , vj.get_x()-vi.get_x()};
-    // compute the area of the triangle 
-    area=abs(0.5*(ki[0]*ij[1]-ki[1]*ij[0]));
-    return area;
-}
 int main(int argc , char** argv)
 {
 	cli_parameters cli;
@@ -36,15 +23,15 @@ int main(int argc , char** argv)
     cli.division_type = QUAD;
     cli.crit_type = "pr";
     cli.v_per_leaf = atoi(argv[2]);    
-    coord_type radius = atof(argv[3]);
-    coord_type mode_to_correct = atof(argv[4]);
+    coord_type mode_to_correct = atof(argv[3]);
+    string point_file_path = argv[4];
+
     PRT_Tree ptree = PRT_Tree(cli.v_per_leaf,cli.division_type);
     cerr<<"[GENERATION] PR-T tree"<<endl;
     Point origin; 
     load_tree(ptree,cli, mode_to_correct, origin);
-    compute_roughness(ptree,cli, radius, origin);
+    compute_interpolated_elevations(ptree,cli, origin, point_file_path);
     // output_triangle_area(ptree.get_mesh(), get_path_without_file_extension(cli.mesh_path));
-
     return (EXIT_SUCCESS);
 }
 
@@ -57,7 +44,7 @@ template<class T> void load_tree(T& tree, cli_parameters &cli, coord_type& mode_
         return;
     }
 
-    origin = standarize_input(tree.get_mesh(), mode_to_correct);
+    origin = standarize_input_mesh(tree.get_mesh(), mode_to_correct);
 
     stringstream base_info;
     base_info << cli.v_per_leaf << " " << cli.t_per_leaf << " " << cli.crit_type << " ";
@@ -108,36 +95,11 @@ template<class T> void load_tree(T& tree, cli_parameters &cli, coord_type& mode_
         to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
 }  
 
-template<class T> void compute_roughness(T& tree, cli_parameters &cli, coord_type& radius, const Point& origin)
-{
-    stringstream out;
-    out << get_path_without_file_extension(cli.mesh_path);
-    
-    cout<<"[NOTA] compute roughness within a range"<<endl;
-    Timer time;
-    Roughness_circle roughness = Roughness_circle();
-    time.start();
-    roughness.compute(tree.get_root(),tree.get_mesh(), radius, tree.get_subdivision());
-    time.stop();
-    time.print_elapsed_time("[TIME] roughness computation: ");
-     cerr << "[MEMORY] peak for computing Roughness: " <<
-        to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
-    roughness.print_roughness_stats(tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num()-1);
-    reverse_mesh_coordinates(tree.get_mesh(), origin);
-    // Writer::write_count_txt(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 1, radius);
-    // Writer::write_elevation_txt(out.str(),tree.get_mesh());
-    Writer::write_roughness_txt(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
-    Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius, true);
-    Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
-    Writer::write_mesh_with_field_PLY(out.str(), tree.get_mesh(), tree.get_mesh().get_vertex(1).get_fields_num() - 2, "roughness_"+to_string(radius));
-   
-   }
 
-Point standarize_input(Mesh& mesh, coord_type& mode_to_correct)
+Point standarize_input_mesh(Mesh& mesh, coord_type& mode_to_correct)
 {
     if(mesh.get_vertices_num() == 0) return Point(0, 0);
     Point origin = mesh.get_vertex(1);
-    // cout<< mesh.get_vertex(0)<<endl;
 
     cout<< mesh.get_vertex(1)<<endl;
     for(int i = 1; i <= mesh.get_vertices_num(); i++){
@@ -155,28 +117,43 @@ Point standarize_input(Mesh& mesh, coord_type& mode_to_correct)
     return origin;
 }
 
-void output_triangle_area(Mesh& mesh, string path)
+void standarize_input_points(vector<Point>& query_points, const Point& reference_origin)
 {
-    
-    dvect areas(mesh.get_triangles_num(), 0);
-    #pragma omp parallel for
-    for(int i = 1; i <= mesh.get_triangles_num(); i++){
-        Triangle t = mesh.get_triangle(i);
-        areas[i - 1] = compute_area(t, mesh);
+    for(int i = 0; i < query_points.size(); i++){
+        Point old = query_points[i];
+        old.set_c(0, old.get_x() - reference_origin.get_x());
+        old.set_c(1, old.get_y() - reference_origin.get_y());
+        query_points[i] = old;
     }
-    Writer::write_tri_area_VTK(path, mesh, areas);
+
 }
 
-void reverse_mesh_coordinates(Mesh& mesh, const Point& origin)
+template<class T> void compute_interpolated_elevations(T& tree, cli_parameters &cli, const Point& origin, string& point_file_path)
 {
-    for(int i = 1; i <= mesh.get_vertices_num(); i++){
-        Vertex old = mesh.get_vertex(i);
-        mesh.get_vertex(i).set_c(0, old.get_x() + origin.get_x());
-        mesh.get_vertex(i).set_c(1, old.get_y() + origin.get_y());
+    stringstream out;
+    out << get_path_without_file_extension(cli.mesh_path);
+    out << "_icesat2_";
+    vector<Point> query_points;
+    Reader::read_queries(query_points, point_file_path);
+    std::cout <<"Read input point list: " << query_points.size() << " query points in total"<<endl;
+    standarize_input_points(query_points, origin);
+    vector<coord_type> elevations(query_points.size());
+    vector<bool> intersect(query_points.size(), false);
+    Spatial_Queries sq;
+    #pragma omp paralllel for
+    for(unsigned int i = 0; i < query_points.size(); i++){
+        intersect[i] = sq.exec_point_interpolation(tree, query_points[i], tree.get_mesh(), tree.get_subdivision(), elevations[i]);
     }
-    Box old_domain = mesh.get_domain();
-    Point new_min = old_domain.get_min() + origin;
-    Point new_max = old_domain.get_max() + origin;
-    old_domain = Box(new_min, new_max);
-    mesh.set_domain(old_domain);
+    reverse_input(query_points, origin);
+    Writer::write_interpolation_results(out.str(), elevations, query_points, intersect);
+}
+
+void reverse_input(vector<Point>& query_points, const Point& origin)
+{
+    for(int i = 0; i < query_points.size(); i++){
+        Point old = query_points[i];
+        old.set_c(0, old.get_x() + origin.get_x());
+        old.set_c(1, old.get_y() + origin.get_y());
+        query_points[i] = old;
+    }
 }

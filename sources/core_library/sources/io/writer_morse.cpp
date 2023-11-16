@@ -22,7 +22,9 @@
  */
 
 #include "writer_morse.h"
+#include "geometry_wrapper.h"
 #include <unordered_map>
+#include <unordered_set>
 
 void Writer_Morse::write_asc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                        ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field)
@@ -517,6 +519,52 @@ void Writer_Morse::write_incidence_graph_VTK(string mesh_name, string operation_
     output.close();
 }
 
+void Writer_Morse::write_critical_points_txt(string mesh_name, string operation_type, itype vertices_per_leaf, IG &forman_ig, Mesh &mesh,
+                                             ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field)
+{
+    stringstream stream;
+    stream << mesh_name <<"_"<<operation_type<< "_critical_points" << ".txt";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+
+
+    itype vertex_number = 0;
+    itype edge_number = 0;
+
+    ivect critici = ivect(mesh.get_vertices_num(), -1);
+    output << "x,y,z,type"<<endl;
+    map<itype, nNode *> &minima = forman_ig.getMinima();
+    for (map<itype, nNode *>::iterator it = minima.begin(); it != minima.end(); ++it)
+    { 
+        nNode *node = it->second;
+        Vertex vert = mesh.get_vertex(node->get_critical_index());
+        output << vert.get_x() << ","  << vert.get_y() << ","  << vert.get_z() <<",min" << endl;
+    }
+
+    map<itype, nNode *> &maxima = forman_ig.getMaxima();
+    for (map<itype, nNode *>::iterator it = maxima.begin(); it != maxima.end(); ++it)
+    {
+        nNode *node = it->second;
+        itype max_v = mesh.get_max_elevation_vertex(mesh.get_triangle(node->get_critical_index()));
+        Vertex vert = mesh.get_vertex(max_v);
+        output << vert.get_x() << ","  << vert.get_y() << ","  << vert.get_z() <<",max"<< endl;
+
+    }
+
+    map<pair<itype, itype>, iNode *> &saddle = forman_ig.getSaddles();
+    for (map<pair<itype, itype>, iNode *>::iterator it = saddle.begin(); it != saddle.end(); ++it)
+    {
+        iNode *node = it->second;
+        Vertex vert = mesh.get_vertex(node->get_critical_index());
+        output << vert.get_x() << ","  << vert.get_y() << ","  << vert.get_z() <<",saddle" << endl;
+
+    }
+
+    output.close();
+}
+
+
 void Writer_Morse::write_critical_clusters(string mesh_name, forman_aux_structures::critical_clusters &cc, Mesh &mesh)
 {
     stringstream stream;
@@ -670,11 +718,11 @@ void Writer_Morse::write_asc1cells_WKT_CSV(string mesh_name, string operation_ty
     for (simplices_multimap::iterator it = triangles.begin(); it != triangles.end(); it++)
     {
         output << tid << ", \"POLYGON ((";
-        for(int i = 0; i < 3; i++){
-            auto vid = it->first[i];
+        for(int i = 0; i < 4; i++){ // Here the first point is added again in the end to make the ring closed. 
+            auto vid = it->first[i % 3];
             Vertex &vert = mesh.get_vertex(vid);
             output << vert.get_x() <<" "<< vert.get_y();
-            if(i != 2) {
+            if(i != 3) {
                 output << ", ";
             }
         }
@@ -683,6 +731,27 @@ void Writer_Morse::write_asc1cells_WKT_CSV(string mesh_name, string operation_ty
     }
     output.close(); 
 }
+
+
+void Writer_Morse::write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, vector<pair<Vertex, Vertex>>& ridge_paths_edges, Mesh &mesh){
+    stringstream stream;
+    stream << mesh_name << "_kv_" << vertices_per_leaf << "_" << operation_type << "_ridge_lines_wkt.csv";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+    output <<"eid, geometry, first vertex elevation, second vertex elevation"<<endl;
+    int eid = 1;
+   
+    for (auto it = ridge_paths_edges.begin(); it != ridge_paths_edges.end(); it++)
+    {
+        output << eid++ << ", \"LINESTRING (";
+        output << it->first.get_x() << " " << it->first.get_y() <<", ";
+        output << it->second.get_x() << " " << it->second.get_y() <<", ";
+        output << ")\", " << it->first.get_z()<<", "<< it->second.get_z() << endl;
+    }
+    output.close(); 
+}
+
 
 void Writer_Morse::write_asc1cells_vertices_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                        ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field)
@@ -706,5 +775,125 @@ void Writer_Morse::write_asc1cells_vertices_CSV(string mesh_name, string operati
         Vertex &vert = mesh.get_vertex(it.first);
         output << it.first << ", " << vert.get_x() <<", "<< vert.get_y() <<", "<< vert.get_z() << ", " << it.second << endl;
     }
+    output.close();
+}
+
+
+void Writer_Morse::write_asc1cells_line_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh, vector<pair<Vertex, Vertex>>& ridge_paths_edges)
+{
+    itype edge_number = ridge_paths_edges.size();
+    map<Vertex, int> centroid_indexes;
+    vector<Vertex> centroids;
+    itype vertex_number = 0;
+    vector<pair<int, int>> edges_indexes;
+    for (auto it = ridge_paths_edges.begin(); it != ridge_paths_edges.end(); ++it)
+    {
+        if(centroid_indexes.find(it->first) == centroid_indexes.end()){
+            centroids.push_back(it->first);
+            centroid_indexes.insert(make_pair(it->first, vertex_number++));
+        }
+        if(centroid_indexes.find(it->second) == centroid_indexes.end()){
+            centroids.push_back(it->second);
+            centroid_indexes.insert(make_pair(it->second, vertex_number++));
+        }
+        edges_indexes.push_back(make_pair(centroid_indexes[it->first], centroid_indexes[it->second]));
+    }
+
+    stringstream stream;
+    stream << mesh_name << "_kv_" << vertices_per_leaf << "_" << operation_type << "_lines.vtk";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+
+    output << "# vtk DataFile Version 2.0" << endl
+           << endl
+           << "ASCII" << endl
+           << "DATASET UNSTRUCTURED_GRID " << endl
+           << endl;
+
+    output << "POINTS " << vertex_number << " float" << endl;
+    for(auto it = centroids.begin(); it != centroids.end(); it++)
+    {
+        for (int i = 0; i < 3; i++)
+            output << it->get_c(i) << " ";
+        output << endl;
+    }
+    output << endl;
+    output << endl;
+
+    output << endl
+           << "CELLS " << edge_number << " " << (edge_number * 3) << endl;
+
+    for (auto it = edges_indexes.begin(); it != edges_indexes.end(); it++)
+    {
+        output << "2 " << it->first << " " << it->second << endl;
+    }
+    output << endl;
+
+    output << endl
+           << "CELL_TYPES " << edge_number << endl;
+    for (itype i = 0; i < edges_indexes.size(); ++i)
+        output << "3 ";
+    output << endl;
+    output << endl;
+
+    output << "POINT_DATA " << vertex_number << endl
+           << endl;
+    output << "FIELD FieldData 1" << endl
+           << endl;
+    output << "original_field 1 " << vertex_number << " float" << endl;
+
+    for(auto it = centroids.begin(); it != centroids.end(); it++)
+    {
+
+        output << it->get_c(2) << " ";
+    }
+    output << endl;
+    output << endl;
+    output.close();
+}
+
+void Writer_Morse::write_asc1cells_PLY(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
+                                     ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field){
+    stringstream stream;
+    stream<<mesh_name<<"_1ascending"<<".ply";
+    ivect new_vertex_index(mesh.get_vertices_num(), -1);
+    ivect orig_vertices;
+    itype vertex_number = 0;
+    for (simplices_multimap::iterator it = triangles.begin(); it != triangles.end(); it++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (new_vertex_index[(it->first)[i] - 1] == -1)
+            {
+                new_vertex_index[(it->first)[i] - 1] = vertex_number++;
+                orig_vertices.push_back((it->first)[i]);
+            }
+        }
+    }
+    ofstream output(stream.str().c_str());
+    output.unsetf( std::ios::floatfield ); // floatfield not set
+    output.precision(15);
+    output << "ply" << endl;
+    output << "format ascii 1.0" << endl;
+    output << "element vertex " << orig_vertices.size() << endl;
+    output << "property double x" << endl;
+    output << "property double y" << endl;
+    output << "property double z" << endl;
+    output << "element face " << triangles.size() << endl;
+    output << "property list uint8 uint32 vertex_indices" << endl;
+    output << "end_header"<<endl;
+    for (itype i = 0; i < orig_vertices.size(); i++)
+    {
+        Vertex &vert = mesh.get_vertex(orig_vertices[i]);
+        output << vert.get_x() << " " << vert.get_y() << " " << vert.get_z()<<endl;
+    }
+
+    for (simplices_multimap::iterator it = triangles.begin(); it != triangles.end(); it++)
+    {
+        output << "3 " << new_vertex_index[(it->first)[0] - 1] << " " << new_vertex_index[(it->first)[1] - 1] 
+        << " " << new_vertex_index[(it->first)[2] - 1] << endl;
+    }
+    output << endl;
     output.close();
 }

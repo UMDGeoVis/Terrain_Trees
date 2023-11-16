@@ -49,6 +49,9 @@ public:
      * @return true if the point is contained in the triangle, false otherwise
      */
     static bool point_in_triangle(int t_id, Point& point, Mesh &mesh);
+
+    static coord_type elevation_interpolate_tri(int t_id, Point& point, Mesh &mesh);
+    
     /**
      * @brief A public static method that computes the triangle-in-box geometric test
      * NOTA: this procedure is used during the generation process of a tree.

@@ -135,7 +135,7 @@ public:
     static void write_filtered_points_cloud_with_id(string mesh_name, Mesh &mesh); /// SpatialHadoop format with vertex index
     static void write_multifield_points_cloud(string mesh_name, vertex_multifield &multifield, Mesh &mesh);
 
-    
+    static void write_interpolation_results(string mesh_name, vector<coord_type> elevations, vector<Point> query_points, vector<bool> intersect_result);
     static void write_field_csv(string mesh_name, Mesh &mesh);
     // Write critical points representing critical simplices
     static void write_critical_points_morse(string mesh_name, map<short, set<ivect> > &critical_simplices, Mesh &mesh);    

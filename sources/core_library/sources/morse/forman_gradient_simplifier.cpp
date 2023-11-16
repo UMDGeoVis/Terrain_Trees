@@ -61,12 +61,30 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
         itype t2 = saddle->get_edge_id().second;
         // cout << "et (outside): " << t1 << ", " << t2 << endl;
 
+
+
         if (sempl.arc->getLabel() != 1)
         {
             if (sempl.arc->getLabel() == -1)
                 delete sempl.arc;
             continue;
         }
+
+        ////// FOR SEA ICE (TESTING)
+        // {
+        //     if(sempl.lvl == 1){
+        //         Vertex &v1 = mesh.get_vertex(saddle->get_critical_index());
+        //         Vertex &v2 = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(sempl.arc->getNode_j()->get_critical_index())));
+        //         double elev_diff = abs(v1.get_z() - v2.get_z());
+        //         if (elev_diff > (v2.get_z() * 0.5))
+        //         {
+        //             continue;
+        //         }
+        //     }
+            
+        // }
+
+
         ivect critical_edge;
         if (t2 < 0)
         {
@@ -93,51 +111,57 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
     /// after the topological simplification we check if we have some MIG arc that have a persistence below the target
     /// and could be simplified (i.e. saddle arcs == 2)
     /// for debug
-    int not_simpl = 0;
-    for (int i = 0; i < 2; i++)
-    {
-        for (set<Arc *>::iterator it = forman_ig.getLevelArcs(i).begin(); it != forman_ig.getLevelArcs(i).end(); ++it)
-        {
-            if ((*it)->getLabel() == 1)
-            {
-                Vertex &v1 = mesh.get_vertex((*it)->getNode_i()->get_critical_index());
-                if (i == 1)
-                {
-                    Vertex &v2 = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle((*it)->getNode_j()->get_critical_index())));
-                    if (abs(v1.get_z() - v2.get_z()) <= persistence)
-                    {
-                        iNode *saddle = (iNode *)(*it)->getNode_i();
-                        if (saddle->getArcs(false).size() == 2)
-                        {
-                            cout << saddle->get_edge_id().first << ", " << saddle->get_edge_id().second << endl;
-                            not_simpl++;
-                            cout << " Arc not simplified " << (*it)->getLabel() << endl;
-                            cout << *(*it) << endl;
-                            cout << *it << endl;
-                        }
-                    }
-                }
-                else
-                {
-                    Vertex &v2 = mesh.get_vertex((*it)->getNode_j()->get_critical_index());
-                    if (abs(v1.get_z() - v2.get_z()) <= persistence)
-                    {
-                        iNode *saddle = (iNode *)(*it)->getNode_j();
-                        if (saddle->getArcs(true).size() == 2)
-                        {
-                            cout << saddle->get_edge_id().first << ", " << saddle->get_edge_id().second << endl;
-                            not_simpl++;
-                            cout << " Arc not simplified " << (*it)->getLabel() << endl;
-                            cout << *(*it) << endl;
-                            cout << *it << endl;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if (not_simpl > 0)
-        cerr << "SIMPLIFICATION WARNING: " << not_simpl << " arcs can be simplified, but are not.." << endl;
+
+    /////// ==== DISABLED FOR SEA ICE APPLICATION ==== /////
+    // {
+    // int not_simpl = 0;
+    // for (int i = 0; i < 2; i++)
+    // {
+    //     for (set<Arc *>::iterator it = forman_ig.getLevelArcs(i).begin(); it != forman_ig.getLevelArcs(i).end(); ++it)
+    //     {
+    //         if ((*it)->getLabel() == 1)
+    //         {
+    //             Vertex &v1 = mesh.get_vertex((*it)->getNode_i()->get_critical_index());
+    //             if (i == 1)
+    //             {
+    //                 Vertex &v2 = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle((*it)->getNode_j()->get_critical_index())));
+    //                 if (abs(v1.get_z() - v2.get_z()) <= persistence)
+    //                 {
+    //                     iNode *saddle = (iNode *)(*it)->getNode_i();
+    //                     if (saddle->getArcs(false).size() == 2)
+    //                     {
+    //                         cout << saddle->get_edge_id().first << ", " << saddle->get_edge_id().second << endl;
+    //                         not_simpl++;
+    //                         cout << " Arc not simplified " << (*it)->getLabel() << endl;
+    //                         cout << *(*it) << endl;
+    //                         cout << *it << endl;
+    //                     }
+    //                 }
+    //             }
+    //             else
+    //             {
+    //                 Vertex &v2 = mesh.get_vertex((*it)->getNode_j()->get_critical_index());
+    //                 if (abs(v1.get_z() - v2.get_z()) <= persistence)
+    //                 {
+    //                     iNode *saddle = (iNode *)(*it)->getNode_j();
+    //                     if (saddle->getArcs(true).size() == 2)
+    //                     {
+    //                         cout << saddle->get_edge_id().first << ", " << saddle->get_edge_id().second << endl;
+    //                         not_simpl++;
+    //                         cout << " Arc not simplified " << (*it)->getLabel() << endl;
+    //                         cout << *(*it) << endl;
+    //                         cout << *it << endl;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // if (not_simpl > 0)
+    //     cerr << "SIMPLIFICATION WARNING: " << not_simpl << " arcs can be simplified, but are not.." << endl;
+    // }
+
+
 }
 
 void Forman_Gradient_Simplifier::topological_simplification(const ivect &critical_edge, Topo_Sempl &sempl, priority_arcs_queue &queue, Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division, Node_V &root, mig_cache &cache, coord_type persistence)
