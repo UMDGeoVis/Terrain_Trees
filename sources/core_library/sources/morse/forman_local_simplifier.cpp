@@ -639,7 +639,7 @@ void Forman_Gradient_Simplifier::build_persistence_queue(priority_arcs_queue &q,
                     val = fabs(v1.get_z() - v2.get_z());
                     ivect filt_ex;
                     filt_ex.push_back(filtration[index_i-1]);
-                    ts= Topo_Sempl(*it, val, i,filtration[critical_edge[0]-1],filtration[critical_edge[1]-1],filt_ex);
+                    ts= Topo_Sempl(*it, val, i, filtration[critical_edge[0]-1],filtration[critical_edge[1]-1],filt_ex);
 
 
                 }

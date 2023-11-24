@@ -61,8 +61,6 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
         itype t2 = saddle->get_edge_id().second;
         // cout << "et (outside): " << t1 << ", " << t2 << endl;
 
-
-
         if (sempl.arc->getLabel() != 1)
         {
             if (sempl.arc->getLabel() == -1)
@@ -81,10 +79,8 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
         //             continue;
         //         }
         //     }
-            
+
         // }
-
-
         ivect critical_edge;
         if (t2 < 0)
         {
@@ -107,6 +103,29 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
     }
     time.stop();
     time.print_elapsed_time("TOT MIG + topological simplification time: ");
+    bool sea_ice_mode = true;
+    if (!sea_ice_mode || !this->second_stage)
+    {
+        return;
+    }
+    /// FOR SEA ICE ONLY
+    // vector<Arc *> valid_ridge_paths;
+    set<Arc *> &arcs = forman_ig.getLevelArcs(1);
+
+    for (set<Arc *>::iterator it = arcs.begin(); it != arcs.end(); ++it)
+    {
+        if ((*it)->getLabel() != -1)
+        {
+            Vertex &v1 = mesh.get_vertex((*it)->getNode_i()->get_critical_index());
+            Vertex &v2 = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle((*it)->getNode_j()->get_critical_index())));
+            if (v2.get_z() >= 0.6)
+            {
+                // cout << "add a path to the output"<<endl;
+                // valid_ridge_paths.push_back(*it);
+                extract_ridge_paths(n, division, *it, mesh, gradient, cache, n, (*it)->getNode_j()->get_critical_index(), false);
+            }
+        }
+    }
 
     /// after the topological simplification we check if we have some MIG arc that have a persistence below the target
     /// and could be simplified (i.e. saddle arcs == 2)
@@ -160,8 +179,6 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
     // if (not_simpl > 0)
     //     cerr << "SIMPLIFICATION WARNING: " << not_simpl << " arcs can be simplified, but are not.." << endl;
     // }
-
-
 }
 
 void Forman_Gradient_Simplifier::topological_simplification(const ivect &critical_edge, Topo_Sempl &sempl, priority_arcs_queue &queue, Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division, Node_V &root, mig_cache &cache, coord_type persistence)
@@ -217,6 +234,48 @@ void Forman_Gradient_Simplifier::simplify(const ivect &critical_edge, Topo_Sempl
             return;
         //    cout<<"[Removal] persistence value:"<<sempl.val<<" edge filtration: "<<sempl.filt_s0<<", "<<sempl.filt_s1<<"; ";
         //    cout<<"extreme filtration: "<<sempl.filt_ex[0]<<", "<<sempl.filt_ex[1]<<", "<<sempl.filt_ex[2]<<endl;
+
+        /// FOR SEA ICE ONLY
+        if (this->second_stage)
+        {
+            // set<Arc *>::iterator it = extrema->begin();
+            if (extrema->size() == 1)
+            {
+                cout<<"Maximum cannot be removed"<<endl;
+                // if the maximum is connected to only one saddle, we don't remove it since this will remove the whole path
+                vector<Arc *> arcs = saddle->get_vector_Arcs(false);
+                nNode *other_extrema;
+                itype triangle;
+                itype ending_path_simplex;
+                Arc *arc_to_add = NULL;
+                if(arcs.size() != 2){
+                    return;
+                }
+                if (arcs[0]->getNode_j() == extrema)
+                {
+                    other_extrema = (nNode *)arcs[1]->getNode_j();
+                    triangle = arcs[0]->getSimplexi();
+                    ending_path_simplex = arcs[1]->getSimplexj();
+                    arc_to_add = arcs[0];
+                }
+                else
+                {
+                    other_extrema = (nNode *)arcs[0]->getNode_j();
+                    triangle = arcs[1]->getSimplexi();
+                    ending_path_simplex = arcs[0]->getSimplexj();
+                    arc_to_add = arcs[1];
+                }
+                Vertex &maximum = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(extrema->get_critical_index())));
+                Vertex &other_maximum = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(other_extrema->get_critical_index())));
+                Vertex &saddle_vertex = mesh.get_vertex(saddle->get_critical_index());
+                if (other_maximum.get_z() > 0.6 && abs(other_maximum.get_z() - saddle_vertex.get_z()) * 2 < other_maximum.get_z())
+                {
+                    extract_ridge_paths(n, division, arc_to_add, mesh, gradient, cache, root, other_extrema->get_critical_index(), true);
+                }
+                return;
+            }
+        }
+
         removal(critical_edge, extrema, saddle, queue, mesh, gradient, local_rels, cache, n, root, division, persistence);
         refined_topo++;
     }
@@ -346,7 +405,6 @@ void Forman_Gradient_Simplifier::remove_extreme_arcs(nNode *extrema, iNode *sadd
                     itype index_i, index_j;
                     itype filt_i, filt_j;
                     ivect filt_ex;
-                    /// check how to compute val..
                     if (is_minimum)
                     {
                         index_i = arco->getNode_i()->get_critical_index();
@@ -406,8 +464,45 @@ void Forman_Gradient_Simplifier::remove_extreme_arcs(nNode *extrema, iNode *sadd
                         index_j = get_max_elevation_vertex(t);
                     }
                     val = abs(mesh.get_vertex(index_i).get_z() - mesh.get_vertex(index_j).get_z());
-                    ///////COMMENTED FOR DEBUG
-                    if (val <= persistence) /// NEW <= instead of < (uniform execution pattern)
+
+                    // === SEA ICE ONLY VERSION ===
+                    if (this->second_stage)
+                    {
+                        if (!is_minimum)
+                        {
+                            // cout<<"Check if updated arc should be added to the queue"<<endl;
+                            vector<Arc *> arcs_of_saddle1 = node_saddle1->get_vector_Arcs(false);
+                            
+                            Vertex maximum_to_connect; // The other maximum connected to the new saddle
+                            if(arcs_of_saddle1.size() == 2){
+                                if (arcs_of_saddle1[0] == arco)
+                                {
+                                    nNode *new_extrema_to_connect = (nNode *)arcs_of_saddle1[1]->getNode_j();
+                                    // cout<<"1:";
+                                    // cout <<get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index()))<<endl;
+                                    maximum_to_connect = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index())));
+                                }
+                                else
+                                {
+                                    nNode *new_extrema_to_connect = (nNode *)arcs_of_saddle1[0]->getNode_j();
+                                    // cout<<"2: ";
+                                    // cout <<get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index()))<<endl;
+                                    maximum_to_connect = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index())));
+                                }
+
+                                coord_type dif_other_side = abs(maximum_to_connect.get_z() - mesh.get_vertex(index_i).get_z());
+                                if (maximum_to_connect.get_z() > mesh.get_vertex(index_j).get_z() &&(
+                                    maximum_to_connect.get_z() > 2 * dif_other_side ||
+                                    maximum_to_connect.get_z() < 0.6))
+                                {
+                                    Topo_Sempl ts = Topo_Sempl(arco, val, !is_minimum, filt_i, filt_j, filt_ex);
+                                    q.push(ts);
+                                }
+                            }
+                        }
+                    }
+                    else if (val <= persistence)
+                    /// NEW <= instead of < (uniform execution pattern)
                     {
                         /// this must be enable if we simplify only topologically!! (the same holds in the removal function)
                         // third parameter is lvl, minimum: 0 and maximum:1
@@ -489,7 +584,49 @@ void Forman_Gradient_Simplifier::build_persistence_queue_leaf(Node_V &n, priorit
 
                     // elevation difference
                     val = abs(v1.get_z() - v2.get_z());
-                    if (val <= persistence)
+
+                    // ====== FOR SEA ICE APPLICATION =====//
+                    if (this->second_stage)
+                    {
+                        vector<Arc *> arcs = saddle->get_vector_Arcs(false);
+                        if(arcs.size() != 2){
+                            continue;
+                        }
+                        Vertex maximum_to_connect;
+                        if (arcs[0] == (*it))
+                        {
+                            nNode *new_extrema_to_connect = (nNode *)arcs[1]->getNode_j();
+                            maximum_to_connect = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index())));
+                        }
+                        else
+                        {
+                            nNode *new_extrema_to_connect = (nNode *)arcs[0]->getNode_j();
+                            maximum_to_connect = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(new_extrema_to_connect->get_critical_index())));
+                        }
+                        // cout<<"Find the other side"<<endl;
+                        if (maximum_to_connect.get_z() < v2.get_z())
+                        {
+                            continue;
+                        }
+                        coord_type dif_other_side = abs(maximum_to_connect.get_z() - v1.get_z());
+                        if (maximum_to_connect.get_z() > 2 * dif_other_side || maximum_to_connect.get_z() < 0.6)
+                        {
+                            Triangle t = mesh.get_triangle((*it)->getNode_j()->get_critical_index());
+                            // filt0 and filt1 are the filtrations of two vertices of critical edge.
+                            int filt0 = (filtration[it_e->first[0] - 1] > filtration[it_e->first[1] - 1]) ? filtration[it_e->first[0] - 1] : filtration[it_e->first[1] - 1];
+                            int filt1 = (filtration[it_e->first[0] - 1] > filtration[it_e->first[1] - 1]) ? filtration[it_e->first[1] - 1] : filtration[it_e->first[0] - 1];
+                            ivect filt_ex; // filtration of extreme, i.e., minima or maxima
+                            for (int i = 0; i < 3; i++)
+                            {
+                                filt_ex.push_back(filtration[t.TV(i) - 1]);
+                            }
+                            sort(filt_ex.begin(), filt_ex.end(), greater<int>());
+                            Topo_Sempl ts = Topo_Sempl(*it, val, 1, filt0, filt1, filt_ex);
+                            // Topo_Sempl ts = Topo_Sempl(arco, val, !is_minimum, filt_i, filt_j, filt_ex);
+                            q.push(ts);
+                        }
+                    }
+                    else if (val <= persistence)
                     {
                         Triangle t = mesh.get_triangle((*it)->getNode_j()->get_critical_index());
                         // filt0 and filt1 are the filtrations of two vertices of critical edge.
@@ -543,4 +680,92 @@ void Forman_Gradient_Simplifier::build_persistence_queue_leaf(Node_V &n, priorit
             cin >> a;
         }
     }
+}
+
+void Forman_Gradient_Simplifier::extract_ridge_paths(Node_V &n, Spatial_Subdivision &division,
+                                                     Arc *arc, Mesh &mesh, Forman_Gradient &gradient, mig_cache &cache,
+                                                     Node_V &root, itype assigned_maximum, bool add_other_saddle_tri)
+{
+
+    itype saddle = arc->getNode_i()->get_critical_index();
+    // cout << saddle <<endl;
+    if (n.is_leaf())
+    {
+        /// if there are no vertices in the leaf we have nothing to do..
+        if (!n.indexes_vertices() || !n.indexes_vertex(saddle))
+            return;
+        this->extract_ridge_paths_leaf(n, division, arc, mesh, gradient, cache, root, assigned_maximum, add_other_saddle_tri);
+    }
+    else
+    {
+        if (!n.indexes_vertex(saddle))
+            return;
+        for (int i = 0; i < division.son_number(); i++)
+        {
+            if (n.get_son(i) != NULL)
+            {
+                extract_ridge_paths(*n.get_son(i), division, arc, mesh, gradient, cache, root, assigned_maximum, add_other_saddle_tri);
+            }
+        }
+    }
+}
+
+void Forman_Gradient_Simplifier::extract_ridge_paths_leaf(Node_V &n, Spatial_Subdivision &division, Arc *arc,
+                                                          Mesh &mesh, Forman_Gradient &gradient, mig_cache &cache, Node_V &root, itype assigned_maximum, bool add_other_saddle_tri)
+{
+    // cout << "extract ridge"<<endl;
+    local_VTstar_ET local_rels;
+    Forman_Gradient_Topological_Relations::get_VTstar_ET(local_rels, n, mesh, gradient, cache);
+    // itype maximum = arc->getNode_j()->get_critical_index();
+    itype triangle = arc->getSimplexi();
+    iNode *saddle_node = ((iNode *)arc->getNode_i());
+    pair<itype, itype> twotriangles = saddle_node->get_edge_id();
+    Triangle &tri = mesh.get_triangle(twotriangles.first);
+    // ivect pre_edge; // starts from saddle edge
+    ivect cur_edge;
+    itype the_other_tri;
+    vector<itype> path;
+    if(add_other_saddle_tri){
+        if (twotriangles.second >= 0)
+        {
+            if(twotriangles.second == triangle){
+                path.push_back(twotriangles.first);
+            }else{
+                path.push_back(twotriangles.second);
+            }
+        }else{
+            return;
+        }
+    }
+
+    //     ivect e;
+    //     Triangle &tri2 = mesh.get_triangle(twotriangles.second);
+    //     for (int j = 0; j < tri2.vertices_num(); j++)
+    //     {
+    //         tri.TE(j, e);
+    //         if (tri2.has_edge(e))
+    //         {
+    //             pre_edge = e;
+    //             break;
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     tri.TE(-twotriangles.second - 1, pre_edge);
+    // }
+
+    itype next_triangle = triangle;
+   
+    while (!gradient.is_triangle_critical(next_triangle))
+    {
+        path.push_back(next_triangle);
+        Triangle &tri = mesh.get_triangle(next_triangle);
+        int i = get_paired_edge(gradient, tri, next_triangle, cur_edge);
+        triangle = next_triangle;
+        pair<itype, itype> et = Forman_Gradient_Topological_Relations::get_ET(n, cur_edge, local_rels.get_ETs(), cache.get_et_cache(), root, division, mesh);
+        next_triangle = (et.first == triangle) ? et.second : et.first;
+    }
+    path.push_back(next_triangle);
+    this->valid_ridge_cells[assigned_maximum].push_back(path);
 }

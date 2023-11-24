@@ -18,6 +18,8 @@ class Sea_Ice_Processor{
         inline void enable_peak_elevation_filter(bool flag){this->peak_elevation_filter = flag;}
         vector<pair<Vertex, Vertex>> get_ridge_paths_edges(){return this->filtered_ridge_paths;}
         inline void enable_roughness_filter(bool flag, coord_type threshold) {this->roughness_filter = flag; this->roughness_limit = threshold;}
+        vector<pair<Vertex, Vertex>> get_ridge_paths_edges_new(Mesh& mesh, map<itype, vector<ivect>>& valid_ridge_paths);
+    
     private:    
         void add_triangle_to_simplex(const ivect& triangle, itype simplex);
         itype find_root(itype simplex);

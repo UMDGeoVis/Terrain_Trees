@@ -8,6 +8,7 @@ using namespace utility_functions;
 struct Parameters{
     bool use_roughness = false;
     bool consider_Rayleigh_criterion = true;
+    bool test_version = false;
 };
 
 template<class T> void load_tree(T& tree, cli_parameters &cli);
@@ -132,6 +133,16 @@ template<class T> void extract_ridges(T& tree, cli_parameters &cli, coord_type& 
         time.print_elapsed_time("[TIME] simplify the gradient ");    
         forman_simplifier.print_simplification_stats();
 
+        time.start();
+        /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
+        /// default behaviour with alltime!
+        forman_simplifier.start_second_stage();
+        forman_simplifier.exec_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
+                                                                cli.cache_size,cli.persistence);
+        time.stop();
+        time.print_elapsed_time("[TIME] simplify the gradient (second round) ");    
+        forman_simplifier.print_simplification_stats();
+
         ///
         /// then we compute again and output the simplified mig
         ///
@@ -144,9 +155,15 @@ template<class T> void extract_ridges(T& tree, cli_parameters &cli, coord_type& 
 
         Writer_Morse::write_critical_points_txt(out.str(),"simplified", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
                                           cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+        Writer_Morse::write_incidence_graph_VTK(out.str(),"simplified_mig", cli.v_per_leaf, forman_simplifier.get_incidence_graph(),tree.get_mesh(),
+                                          cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
 
         forman_simplifier.reset_output_structures(tree.get_mesh());
         forman_simplifier.reset_timer_variables();
+
+
+
+
 
         cout<<"--- Topological features AFTER simplification ---"<<endl;
         extract_features(tree, cli, forman_simplifier, forman_gradient, "after", length_limit, parameters, roughness_limit);
@@ -267,6 +284,26 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
     if(parameters.consider_Rayleigh_criterion){
         out<<"_Rayleigh_enabled";
     }
+    if(parameters.test_version){
+        out << "_test_version";
+    }
+    /// ---- DESCENDING 2 MANIFOLD EXTRACTION --- ///
+    cout<<"[NOTA] Extract the descending 2 manifolds."<<endl;
+    if(cli.app_debug == OUTPUT)
+        forman_simplifier.init_segmentation_vector(tree.get_mesh());
+    time.start();
+    forman_simplifier.extract_descending_2cells(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),tree.get_root(),
+                                                    cli.app_debug,cli.cache_size);
+    time.stop();
+
+  
+    forman_simplifier.print_stats();
+    forman_simplifier.reset_stats();
+    Writer_Morse::write_desc2cells_VTK(out.str(),"desc2cells", cli.v_per_leaf,
+                                        forman_simplifier.get_segmentation_vector(),tree.get_mesh(),cli.original_triangle_indices,
+                                        cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+    forman_simplifier.reset_output_structures(tree.get_mesh());
+
     /// ---- ASCENDING 1 MANIFOLD EXTRACTION --- ///
     cout<<"[NOTA] Extract the ascending 1 manifolds."<<endl;
     time.start();
@@ -279,26 +316,39 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
     forman_simplifier.reset_stats();
     auto extracted_cells = forman_simplifier.get_extracted_cells(TRIANGLE);
 
+
+    auto valid_paths = forman_simplifier.get_valid_ridge_cells();
     Sea_Ice_Processor processor(extracted_cells, length_limit, /*area_mode=*/0); // area_mode is zero if standardrze input is applied.
     processor.enable_peak_elevation_filter(true);
     processor.enable_roughness_filter(parameters.use_roughness, roughness_limit);
     auto updated_cells = processor.get_processed_triangles(tree.get_mesh());
     auto ridge_paths_edges = processor.get_ridge_paths_edges();
 
+    auto ridge_paths_edges_new = processor.get_ridge_paths_edges_new(tree.get_mesh(), valid_paths);
+
     Writer_Morse::write_asc1cells_line_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
                                         , tree.get_mesh(),ridge_paths_edges);
+
+    
+    Writer_Morse::write_asc1cells_line_VTK(out.str(),"asc1cells_filtered", cli.v_per_leaf, updated_cells 
+                                        , tree.get_mesh(), ridge_paths_edges_new);
+
     Writer_Morse::write_asc1cells_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
                                         , tree.get_mesh(), cli.original_triangle_indices,
                                         cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
-    Writer_Morse::write_asc1cells_PLY(out.str(),"asc1cells", cli.v_per_leaf,
-                                        updated_cells , tree.get_mesh(), cli.original_triangle_indices,
-                                        cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+    // Writer_Morse::write_asc1cells_PLY(out.str(),"asc1cells", cli.v_per_leaf,
+    //                                     updated_cells , tree.get_mesh(), cli.original_triangle_indices,
+    //                                     cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
     Writer_Morse::write_asc1cells_paths_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf, ridge_paths_edges, tree.get_mesh());
+
+    Writer_Morse::write_asc1cells_paths_WKT_CSV(out.str(),"asc1cells_filtered", cli.v_per_leaf, ridge_paths_edges_new, tree.get_mesh());
+
+
     // Writer_Morse::write_asc1cells_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf,
     //                                   updated_cells, tree.get_mesh(), cli.original_triangle_indices,
     //                                   cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
-    Writer_Morse::write_asc1cells_vertices_CSV(out.str(),"asc1cells", cli.v_per_leaf, updated_cells, tree.get_mesh(), cli.original_triangle_indices,
-                                        cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
+    // Writer_Morse::write_asc1cells_vertices_CSV(out.str(),"asc1cells", cli.v_per_leaf, updated_cells, tree.get_mesh(), cli.original_triangle_indices,
+    //                                     cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
     forman_simplifier.reset_output_structures(tree.get_mesh());
 
 

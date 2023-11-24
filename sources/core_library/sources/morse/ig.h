@@ -338,7 +338,7 @@ class Topo_Sempl
     public:
         Arc* arc;
         coord_type val;
-        int filt_s0,filt_s1;
+        int filt_s0, filt_s1;
         ivect filt_ex;
         int lvl;
 
