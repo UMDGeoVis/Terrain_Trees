@@ -137,7 +137,7 @@ simplices_multimap Sea_Ice_Processor::update_label()
         itype root = find_root(tid);
         // cout << root << " size: "<<size_of_simplices[root]<<endl;
         // Filter ridges with peak lower than 0.6 meter higher than the level sea ice (to match the results from icesat 2 paper.)
-        if (length_of_simplices[root] > length_limit && peak_elevation_of_simplices[root] > 0.6)
+        if (length_of_simplices[root] > length_limit && peak_elevation_of_simplices[root] >= 0.6)
         {
             output[extracted_triangles[tid]].push_back(root);
             for (auto eid : edges_for_each_root[tid])

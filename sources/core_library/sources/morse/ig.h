@@ -385,4 +385,14 @@ struct sort_arcs_topo{
     }
 };
 
+struct sort_arcs_topo_second_round{
+    bool operator()(Topo_Sempl &s1, Topo_Sempl &s2)
+    {   
+        if(s1.val!=s2.val)
+           return s1.val < s2.val;
+        return s1.filt_ex.front() < s2.filt_ex.front();
+    }
+};
+
+
 #endif // IG_H
