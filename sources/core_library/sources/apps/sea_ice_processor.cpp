@@ -149,7 +149,7 @@ simplices_multimap Sea_Ice_Processor::update_label()
     return output;
 }
 
-vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths)
+vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths, vector<Ridge_Stats>& ridges_stats, double level_sea_ice_elev)
 {
     set<pair<Vertex, Vertex>> edges;
 
@@ -164,7 +164,7 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
             if (path.back() != maximum.first)
             {
                 incomplete_path.push_back(i);
-                saddle_triangle_index.push_back(path.back());
+                saddle_triangle_index.push_back(path.front());
             }
             else
             {
@@ -177,12 +177,12 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
             auto path = to_connect.find(saddle_triangle_index[i]);
             if (path != to_connect.end())
             {
-                cout << "before: " << maximum.second[path->second].size();
+                // cout << "before: " << maximum.second[path->second].size();
                 ivect &path_to_extend = maximum.second[path->second];
                 ivect &path_to_add = maximum.second[incomplete_path[i]];
                 // add the maximum-saddle path to the corresponding saddle-maximum path, but not insert the last saddle triangle again.
-                path_to_extend.insert(path_to_extend.begin(), path_to_add.begin(), path_to_add.begin() + path_to_add.size() - 1);
-                cout << "after: " << maximum.second[path->second].size();
+                path_to_extend.insert(path_to_extend.begin(), path_to_add.rbegin(), path_to_add.rbegin() + path_to_add.size() - 1);
+                // cout << "after: " << maximum.second[path->second].size()<<endl;
             }
         }
         for (int path : incomplete_path)
@@ -191,9 +191,14 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
         }
     }
     int roughness_fid = mesh.get_vertex(1).get_fields_num() - 2;
-    for (auto maximum : valid_ridge_paths)
+    for (auto ridge_path_of_maximum : valid_ridge_paths)
     {
-        for (auto path : maximum.second)
+        Ridge_Stats ridge_stats;
+        double length = 0;
+        Vertex maximum = get_max_elevation_vertex(ridge_path_of_maximum.first, mesh);
+        ridge_stats.maximum = maximum;
+        ridge_stats.peak_elevation = maximum.get_z() + level_sea_ice_elev;
+        for (auto path : ridge_path_of_maximum.second)
         {
            // We don't check the roughness of the last tri in the path (the maximum) 
             for (int i = path.size() - 1; i > 0; i--)
@@ -210,10 +215,15 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
                         break;
                     }
                 }
-                auto edge = make_pair(get_centroid(t1_vec, mesh), get_centroid(t2_vec, mesh));
+                Vertex centroid_1 = get_centroid(t1_vec, mesh);
+                Vertex centroid_2 = get_centroid(t2_vec, mesh);
+                auto edge = make_pair(centroid_1, centroid_2);
                 edges.insert(edge);
+                length += centroid_1.distance(centroid_2);
             }
         }
+        ridge_stats.length = length;
+        ridges_stats.push_back(ridge_stats);
     }
     vector<pair<Vertex, Vertex>> edge_vector;
     edge_vector.insert(edge_vector.end(), edges.begin(), edges.end());

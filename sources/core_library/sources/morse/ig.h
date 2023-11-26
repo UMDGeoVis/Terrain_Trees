@@ -242,10 +242,23 @@ public:
     inline Arc* already_connected(nNode* extrema, iNode* saddle)
     {
         for(set<Arc*>::const_iterator it=extrema->begin(); it!=extrema->end(); ++it)
+        {
+                // cout << (*it)->getNode_i()<<endl;
+                // cout << *(*it)->getNode_i()<<endl;
+                // cout << (*it)->getNode_j()<<endl;
+                // cout << *(*it)->getNode_j()<<endl;
+                // cout << extrema<<endl;
+                // cout << *extrema <<endl;
+                // cout << *(*it) <<endl;
             if((((*it)->getNode_i() == extrema && (*it)->getNode_j() == saddle) ||
                ((*it)->getNode_j() == extrema && (*it)->getNode_i() == saddle))
-                    && (*it)->getLabel() > 0 )
-                return *it;
+                    && (*it)->getLabel() > 0 ){
+                        return *it;
+                    }
+
+
+        }
+
 
         return NULL;
     }

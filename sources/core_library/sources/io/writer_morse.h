@@ -29,6 +29,7 @@
 #include "io/writer.h"
 #include "morse/forman_gradient_aux_structure.h"
 #include "morse/ig.h"
+#include "apps/sea_ice_processor.h"
 
 using namespace std;
 
@@ -63,7 +64,7 @@ public:
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_critical_points_txt(string mesh_name, string operation_type, itype vertices_per_leaf, IG &forman_ig, Mesh &mesh,
                                           ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
-
+    static void write_ridges_stats_CSV(vector<Ridge_Stats>& ridges_stats, string mesh_name);
 private:
     ///A constructor method
     Writer_Morse() {}

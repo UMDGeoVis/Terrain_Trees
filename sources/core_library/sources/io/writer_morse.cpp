@@ -746,7 +746,7 @@ void Writer_Morse::write_asc1cells_paths_WKT_CSV(string mesh_name, string operat
     {
         output << eid++ << ", \"LINESTRING (";
         output << it->first.get_x() << " " << it->first.get_y() <<", ";
-        output << it->second.get_x() << " " << it->second.get_y() <<", ";
+        output << it->second.get_x() << " " << it->second.get_y();
         output << ")\", " << it->first.get_z()<<", "<< it->second.get_z() << endl;
     }
     output.close(); 
@@ -774,6 +774,19 @@ void Writer_Morse::write_asc1cells_vertices_CSV(string mesh_name, string operati
     for (const auto& it : orig_vertices){
         Vertex &vert = mesh.get_vertex(it.first);
         output << it.first << ", " << vert.get_x() <<", "<< vert.get_y() <<", "<< vert.get_z() << ", " << it.second << endl;
+    }
+    output.close();
+}
+void Writer_Morse::write_ridges_stats_CSV(vector<Ridge_Stats>& ridges_stats, string mesh_name){
+    stringstream stream;
+    stream << mesh_name << "_ridges.csv";
+    ofstream output(stream.str().c_str());
+    output.unsetf(std::ios::floatfield); // floatfield not set
+    output.precision(15);
+    output <<"peak x, peak y, relative elevation, absolute elevation, length"<<endl;
+    for (const auto& it : ridges_stats){
+      
+        output << it.maximum.get_x() << ", " << it.maximum.get_y() <<", "<< it.maximum.get_c(2) << ", " << it.peak_elevation << ", " << it.length << endl;
     }
     output.close();
 }

@@ -117,8 +117,8 @@ private:
             it=arcs.begin();
         }
     }
-    void remove_extreme_arcs(nNode* extrema, iNode* saddle, nNode *other_extrema, itype ending_path_simplex,
-                             bool is_minimum, IG &ig, Mesh &mesh, coord_type persistence);
+    // void remove_extreme_arcs(nNode* extrema, iNode* saddle, nNode *other_extrema, itype ending_path_simplex,
+    //                          bool is_minimum, IG &ig, Mesh &mesh, coord_type persistence);
     /// return the position of the paired edge of the triangle - plus saves in the edge variable the paired edge
     inline int get_paired_edge(Forman_Gradient &gradient, Triangle& tri, itype t_id, ivect &edge)
     {

@@ -31,13 +31,16 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
     ig_paths paths;
     Timer time;
     time.start();
-    forman_ig.init();                                                                       /// init again the MIG structures
-    this->incidence_graph_extraction(n, mesh, gradient, division, n, OUTPUT, cache, paths); /// we need to encode explicitly the MIG
-    if (!paths.visited_all())
-    {
-        cout << "[ERROR] the labels are not correctly assigned." << endl;
+    if(!second_stage){
+        forman_ig.init();                                                                       /// init again the MIG structures
+        this->incidence_graph_extraction(n, mesh, gradient, division, n, OUTPUT, cache, paths); /// we need to encode explicitly the MIG
+        if (!paths.visited_all())
+        {
+            cout << "[ERROR] the labels are not correctly assigned." << endl;
+        }
     }
     cache.reset();
+    
     print_arc_nums();
     // priority_arcs_queue queue;
     regular_queue = priority_arcs_queue();
@@ -51,6 +54,12 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
         {
             Topo_Sempl sempl = regular_queue.top();
             regular_queue.pop();
+            if (sempl.arc->getLabel() != 1)
+            {
+                if (sempl.arc->getLabel() == -1)
+                    delete sempl.arc;
+                continue;
+            }
             iNode *saddle = NULL;
             if (sempl.lvl == 0)
             {
@@ -63,12 +72,6 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
             itype t1 = saddle->get_edge_id().first;
             itype t2 = saddle->get_edge_id().second;
 
-            if (sempl.arc->getLabel() != 1)
-            {
-                if (sempl.arc->getLabel() == -1)
-                    delete sempl.arc;
-                continue;
-            }
             ivect critical_edge;
             if (t2 < 0)
             {
@@ -140,6 +143,7 @@ void Forman_Gradient_Simplifier::exec_topological_simplification(Node_V &n, Mesh
     bool sea_ice_mode = true;
     if (!sea_ice_mode || !this->second_stage)
     {
+        cout <<"simplified topo: "<<refined_topo<<endl;
         return;
     }
     /// FOR SEA ICE ONLY
@@ -267,13 +271,18 @@ void Forman_Gradient_Simplifier::simplify(const ivect &critical_edge, Topo_Sempl
         saddle = (iNode *)sempl.arc->getNode_i();
         extrema = (nNode *)sempl.arc->getNode_j();
 
+        // cout << "number of arcs: "<< extrema->size()<<endl;
+        // for(auto maximum_arc:extrema->getArcs()){
+        //     cout << *maximum_arc << "; ";
+        // }
+        // cout << endl;
         if (saddle->getArcs(false).size() != 2)
             return;
         //    cout<<"[Removal] persistence value:"<<sempl.val<<" edge filtration: "<<sempl.filt_s0<<", "<<sempl.filt_s1<<"; ";
         //    cout<<"extreme filtration: "<<sempl.filt_ex[0]<<", "<<sempl.filt_ex[1]<<", "<<sempl.filt_ex[2]<<endl;
 
         /// FOR SEA ICE ONLY
-        if (this->second_stage && extrema->size() == 1)
+        if (this->second_stage)
         {
             vector<Arc *> arcs = saddle->get_vector_Arcs(false);
             nNode *other_extrema;
@@ -284,18 +293,19 @@ void Forman_Gradient_Simplifier::simplify(const ivect &critical_edge, Topo_Sempl
             {
                 return;
             }
+            
             if (arcs[0]->getNode_j() == extrema)
             {
                 other_extrema = (nNode *)arcs[1]->getNode_j();
-             
                 arc_to_add = arcs[0];
             }
             else
             {
                 other_extrema = (nNode *)arcs[0]->getNode_j();
-           
                 arc_to_add = arcs[1];
             }
+
+
             Vertex &maximum = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(extrema->get_critical_index())));
             Vertex &other_maximum = mesh.get_vertex(get_max_elevation_vertex(mesh.get_triangle(other_extrema->get_critical_index())));
             Vertex &saddle_vertex = mesh.get_vertex(saddle->get_critical_index());
@@ -305,13 +315,12 @@ void Forman_Gradient_Simplifier::simplify(const ivect &critical_edge, Topo_Sempl
             if(other_maximum.get_z() < 2 * abs(other_maximum.get_z() - saddle_vertex.get_z())){
                 return;
             }
-            else if(extrema->size() == 1){
-                cout << "Maximum cannot be removed" << endl;
+            if(extrema->size() == 1){
+                // cout << "Maximum cannot be removed" << endl;
                 extract_ridge_paths(n, division, arc_to_add, mesh, gradient, cache, root, other_extrema->get_critical_index(), true);
                 return;
             }
-            
-        
+               
         }
 
         removal(critical_edge, extrema, saddle, mesh, gradient, local_rels, cache, n, root, division, persistence);
@@ -574,6 +583,8 @@ void Forman_Gradient_Simplifier::remove_extreme_arcs(nNode *extrema, iNode *sadd
             else
             {
                 existing_arc->setLabel(2);
+                // cout << "Double connected"<<endl;
+                // cout << *existing_arc<<endl;
             }
         }
 
@@ -838,135 +849,6 @@ void Forman_Gradient_Simplifier::extract_ridge_paths_leaf(Node_V &n, Spatial_Sub
     this->valid_ridge_cells[assigned_maximum].push_back(path);
 }
 
-void Forman_Gradient_Simplifier::remove_extreme_arcs(nNode *extrema, iNode *saddle, nNode *other_extrema, itype ending_path_simplex,
-                                                     bool is_minimum, IG &ig, Mesh &mesh, coord_type persistence)
-{
-    iNode *node_saddle1 = NULL;
-    itype starting_path_simplex;
-    coord_type val;
-
-    set<Arc *>::iterator it = extrema->begin();
-    while (it != extrema->end())
-    {
-        if (is_minimum)
-        {
-            node_saddle1 = ((iNode *)(*it)->getNode_j());
-            starting_path_simplex = (*it)->getSimplexj();
-        }
-        else
-        {
-            node_saddle1 = ((iNode *)(*it)->getNode_i());
-            starting_path_simplex = (*it)->getSimplexi();
-        }
-
-        (*it)->setLabel(-1);
-
-        ig.removeArc(!is_minimum, *it);
-        node_saddle1->removeArc(is_minimum, *it);
-        extrema->removeArc(it);
-
-        if (node_saddle1 != saddle)
-        {
-            Arc *existing_arc = ig.already_connected(other_extrema, node_saddle1);
-            if (existing_arc == NULL)
-            {
-                Arc *arco = NULL;
-
-                if (is_minimum)
-                    arco = ig.addArc(other_extrema, ending_path_simplex, node_saddle1, starting_path_simplex, 0);
-                else
-                    arco = ig.addArc(node_saddle1, starting_path_simplex, other_extrema, ending_path_simplex, 1);
-
-                // cout<<"addArc: "<<*arco<<endl;
-
-                if (arco->getLabel() == 1)
-                {
-                    int index_ex;
-                    ivect critical_edge;
-                    ivect filt_ex;
-                    /// check how to compute val..
-                    if (is_minimum)
-                    {
-                        index_ex = arco->getNode_i()->get_critical_index();
-                        filt_ex.push_back(filtration[index_ex - 1]);
-                        itype index_j = arco->getNode_j()->get_critical_index();
-                        pair<itype, itype> critical_edge_tetra = ((iNode *)arco->getNode_j())->get_edge_id();
-
-                        Triangle &first = mesh.get_triangle(critical_edge_tetra.first);
-                        if (critical_edge_tetra.second < 0)
-                        {
-                            first.TE(-critical_edge_tetra.second - 1, critical_edge);
-                        }
-                        else
-                        {
-                            Triangle &second = mesh.get_triangle(critical_edge_tetra.second);
-                            for (int i = 0; i < 3; i++)
-                            {
-                                if (!(second.has_vertex(first.TV(i))))
-                                {
-                                    first.TE(i, critical_edge);
-                                    break;
-                                }
-                            }
-                        }
-
-                        index_j = arco->getNode_j()->get_critical_index();
-                        val = fabs(mesh.get_vertex(index_ex).get_z() -
-                                   mesh.get_vertex(index_j).get_z());
-                    }
-                    else
-                    {
-                        itype index_i = arco->getNode_i()->get_critical_index();
-
-                        pair<itype, itype> critical_edge_tetra = ((iNode *)arco->getNode_i())->get_edge_id();
-
-                        Triangle &first = mesh.get_triangle(critical_edge_tetra.first);
-                        if (critical_edge_tetra.second < 0)
-                        {
-                            first.TE(-critical_edge_tetra.second - 1, critical_edge);
-                        }
-                        else
-                        {
-                            Triangle &second = mesh.get_triangle(critical_edge_tetra.second);
-                            for (int i = 0; i < 3; i++)
-                            {
-                                if (!(second.has_vertex(first.TV(i))))
-                                {
-                                    first.TE(i, critical_edge);
-                                    break;
-                                }
-                            }
-                        }
-                        Triangle t = mesh.get_triangle(arco->getNode_j()->get_critical_index());
-                        index_ex = get_max_elevation_vertex(t);
-                        val = fabs(mesh.get_vertex(index_i).get_z() - mesh.get_vertex(index_ex).get_z());
-
-                        for (int i = 0; i < 3; i++)
-                            filt_ex.push_back(filtration[t.TV(i) - 1]);
-                    }
-                    /// we push in queue if:
-                    /// we simplify using a percentage based critarion
-                    /// or if the persistence is below the average
-
-                    if (val <= persistence) /// NEW <= instead of <
-                    {
-                        /// this must be enable if we simplify only topologically!! (the same holds in the removal function)
-                        Topo_Sempl ts = Topo_Sempl(arco, val, !is_minimum, filtration[critical_edge[0] - 1], filtration[critical_edge[1] - 1], filt_ex);
-                        sort(filt_ex.begin(), filt_ex.end(), greater<int>());
-                        regular_queue.push(ts);
-                    }
-                }
-            }
-            else
-            {
-                existing_arc->setLabel(2);
-            }
-        }
-
-        /// set again to begin
-        it = extrema->begin();
-    }
-}
 
 coord_type Forman_Gradient_Simplifier::get_average_persistence_value(IG &ig, Mesh &mesh)
 {
