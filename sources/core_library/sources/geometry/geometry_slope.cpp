@@ -58,11 +58,11 @@ coord_type Geometry_Slope::compute_edge_slope(ivect &e, Mesh &mesh)
 {
     Vertex &v1 = mesh.get_vertex(e[0]);
     Vertex &v2 = mesh.get_vertex(e[1]);
-    Vertex v3 = Vertex(v1.get_x(),v1.get_y(),v2.get_z()); // temp vertex to get a ground
+    Vertex v3 = Vertex(v2.get_x(), v2.get_y(), v1.get_z()); // temp vertex to get a ground
 
     // get the two vectors in the triangle
-    dvect u = { v2.get_x()-v1.get_x() , v2.get_y()-v1.get_y() , v2.get_z()-v1.get_z() };
-    dvect v = { v3.get_x()-v1.get_x() , v3.get_y()-v1.get_y() , v3.get_z()-v1.get_z() };
+    dvect u = { v2.get_x() - v1.get_x() , v2.get_y() - v1.get_y() , v2.get_z() - v1.get_z() };
+    dvect v = { v3.get_x() - v1.get_x() , v3.get_y() - v1.get_y() , v3.get_z() - v1.get_z() };
 
     coord_type u_mag = sqrt( u[0]*u[0] + u[1]*u[1] + u[2]*u[2] );
     dvect u_norm = { u[0]/u_mag , u[1]/u_mag , u[2]/u_mag };

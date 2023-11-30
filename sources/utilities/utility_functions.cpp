@@ -164,8 +164,8 @@ int read_arguments(int argc, char** argv, cli_parameters &variables)
                     variables.query_type = GAUSS_CCURVATURE;
                 else if(tok[0]=="morse")
                     variables.query_type = MORSE_ANALYSIS;
-                else if(tok[0]=="simpl")
-                    variables.query_type = LOCAL_MORSE_SIMPLIFICATION;
+                // else if(tok[0]=="simpl")
+                //     variables.query_type = LOCAL_MORSE_SIMPLIFICATION;
                 else if(tok[0]=="gsimpl")
                      variables.query_type = GLOBAL_MORSE_SIMPLIFICATION;
                 else if(tok[0]=="multiv")
