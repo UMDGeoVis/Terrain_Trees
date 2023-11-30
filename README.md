@@ -17,9 +17,7 @@ Terrain trees against a state-of-the-art compact data structures.
 ### Reference Paper ###
 
 Riccardo Fellegara, Yunting Song, Federico Iuricich, and Leila De Floriani.
-*Terrain trees: a framework for representing, analyzing and visualizing triangulated terrains*. GeoInformatica 27.3 (2023): 525-564.
-
-Submitted for review, 2021. [doi](https://link.springer.com/article/10.1007/s10707-022-00472-3)
+*Terrain trees: a framework for representing, analyzing and visualizing triangulated terrains*. GeoInformatica 27.3 (2023): 525-564. [doi](https://link.springer.com/article/10.1007/s10707-022-00472-3)
 
 Riccardo Fellegara, Federico Iuricich, and Leila De Floriani. 
 *Efficient representation and analysis of triangulated terrains*.
