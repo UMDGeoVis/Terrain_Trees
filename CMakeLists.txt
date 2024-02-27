@@ -71,6 +71,9 @@ target_link_libraries(test_edge_costs _terrain_trees_apps)
 add_executable(test_smooth EXCLUDE_FROM_ALL sources/tests/test_smooth.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_smooth _terrain_trees_apps)
 
+add_executable(test_distance EXCLUDE_FROM_ALL sources/tests/test_vertical_distance.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
+target_link_libraries(test_distance _terrain_trees_apps)
+
 # add_executable(test_morse EXCLUDE_FROM_ALL sources/tests/test_morse.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 # target_link_libraries(test_morse _terrain_trees_apps)
 
@@ -80,10 +83,9 @@ target_link_libraries(test_smooth _terrain_trees_apps)
 add_executable(test_morse_simplification EXCLUDE_FROM_ALL sources/tests/test_morse_simplification.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_morse_simplification _terrain_trees_apps)
 
+
 add_executable(test_calc_simp_stats EXCLUDE_FROM_ALL sources/tests/test_calc_node_stats_simplification.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_calc_simp_stats _terrain_trees_apps)
 
-#add_custom_target(tests DEPENDS test_index_generation test_curvature test_soup test_batched_queries test_terrain_feature_extraction test_spatial_queries test_edge_contraction test_parallel_edge_contraction test_morse test_morse_simplification test_multivariate_morse test_para_grad_edge_contraction)
-add_custom_target(tests DEPENDS  test_calc_simp_stats test_parallel_edge_contraction test_morse_simplification test_para_grad_edge_contraction test_smooth test_edge_costs)
-
+add_custom_target(tests_simplification DEPENDS  test_calc_simp_stats test_parallel_edge_contraction test_morse_simplification test_para_grad_edge_contraction test_smooth test_edge_costs test_distance)
 

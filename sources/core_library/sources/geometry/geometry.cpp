@@ -220,6 +220,43 @@ int Geometry::PointInTriangle(double xp, double yp, double * v1, double * v2, do
     if (xp == v1[0] && yp == v1[1]) return 1;
     if (xp == v2[0] && yp == v2[1]) return 1;
     if (xp == v3[0] && yp == v3[1]) return 1;
+    v2[0] -= v1[0]; v3[0] -= v1[0];
+    v2[1] -= v1[1]; v3[1] -= v1[1];
+    xp -= v1[0]; yp -= v1[1];
+    v1[0] = 0; v1[1] = 0;
+    //  static double * v[4] = {v1, v2, v3, v4};
+    int d1, d2, d3, orientation;
+    orientation = DetSign3D(v1[0], v1[1], 1,
+                            v2[0], v2[1], 1,
+                            v3[0], v3[1], 1);
+
+    d1 = DetSign3D(xp, yp, 1,
+                   v2[0], v2[1], 1,
+                   v3[0], v3[1], 1);
+
+    if (d1 != orientation && d1 != 0) return 0;
+
+    d2 = DetSign3D(v1[0], v1[1], 1,
+                   xp, yp, 1,
+                   v3[0], v3[1], 1);
+
+    if (d2 != orientation && d2 != 0) return 0;
+
+    d3 = DetSign3D(v1[0], v1[1], 1,
+                   v2[0], v2[1], 1,
+                   xp, yp, 1);
+
+    if (d3 != orientation && d3 != 0) return 0;
+
+    return 1;
+}
+
+int Geometry::PointInTriangle_old(double xp, double yp, double * v1, double * v2, double * v3)
+{
+    // we check if the point is a vertex of the triangle
+    if (xp == v1[0] && yp == v1[1]) return 1;
+    if (xp == v2[0] && yp == v2[1]) return 1;
+    if (xp == v3[0] && yp == v3[1]) return 1;
 
     //  static double * v[4] = {v1, v2, v3, v4};
     int d1, d2, d3, orientation;
