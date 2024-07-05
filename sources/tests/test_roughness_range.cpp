@@ -122,13 +122,13 @@ template<class T> void compute_roughness(T& tree, cli_parameters &cli, coord_typ
     time.print_elapsed_time("[TIME] roughness computation: ");
      cerr << "[MEMORY] peak for computing Roughness: " <<
         to_string(MemoryUsage().get_Virtual_Memory_in_MB()) << " MBs" << std::endl;
-    roughness.print_roughness_stats(tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num()-1);
+    roughness.print_roughness_stats(tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2);
     reverse_mesh_coordinates(tree.get_mesh(), origin);
     // Writer::write_count_txt(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 1, radius);
     // Writer::write_elevation_txt(out.str(),tree.get_mesh());
-    Writer::write_roughness_txt(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
-    Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius, true);
-    Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
+    // Writer::write_roughness_txt(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
+    // Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius, true);
+    // Writer::write_mesh_roughness_VTK(out.str(),tree.get_mesh(),tree.get_mesh().get_vertex(1).get_fields_num() - 2, radius);
     Writer::write_mesh_with_field_PLY(out.str(), tree.get_mesh(), tree.get_mesh().get_vertex(1).get_fields_num() - 2, "roughness_"+to_string(radius));
    
    }

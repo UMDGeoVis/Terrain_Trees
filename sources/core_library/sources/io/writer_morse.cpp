@@ -556,7 +556,31 @@ void Writer_Morse::write_critical_points_txt(string mesh_name, string operation_
     for (map<pair<itype, itype>, iNode *>::iterator it = saddle.begin(); it != saddle.end(); ++it)
     {
         iNode *node = it->second;
-        Vertex vert = mesh.get_vertex(node->get_critical_index());
+        // Vertex vert = mesh.get_vertex(node->get_critical_index());
+        // sad_vertex = node->get_critical_index();
+        pair<itype, itype> critical_edge_tetra = node->get_edge_id();
+        ivect critical_edge;
+        Triangle &first = mesh.get_triangle(critical_edge_tetra.first);
+        if (critical_edge_tetra.second < 0)
+        {
+            first.TE(-critical_edge_tetra.second - 1, critical_edge);
+        }
+        else
+        {
+            Triangle &second = mesh.get_triangle(critical_edge_tetra.second);
+            for (int i = 0; i < 3; i++)
+            {
+                if (!(second.has_vertex(first.TV(i))))
+                {
+                    first.TE(i, critical_edge);
+                    break;
+                }
+            }
+        }
+        Vertex vert;
+        vert.set_c(0, (mesh.get_vertex(critical_edge[0]).get_x() + mesh.get_vertex(critical_edge[1]).get_x()) / 2 );
+        vert.set_c(1, (mesh.get_vertex(critical_edge[0]).get_y() + mesh.get_vertex(critical_edge[1]).get_y()) / 2 );
+        vert.set_c(2, (mesh.get_vertex(critical_edge[0]).get_z() + mesh.get_vertex(critical_edge[1]).get_z()) / 2 );
         output << vert.get_x() << ","  << vert.get_y() << ","  << vert.get_z() <<",saddle" << endl;
 
     }
@@ -733,21 +757,23 @@ void Writer_Morse::write_asc1cells_WKT_CSV(string mesh_name, string operation_ty
 }
 
 
-void Writer_Morse::write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, vector<pair<Vertex, Vertex>>& ridge_paths_edges, Mesh &mesh){
+void Writer_Morse::write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, vector<pair<pair<Vertex, Vertex>, int>> & ridge_paths_edges, Mesh &mesh){
     stringstream stream;
     stream << mesh_name << "_kv_" << vertices_per_leaf << "_" << operation_type << "_ridge_lines_wkt.csv";
     ofstream output(stream.str().c_str());
     output.unsetf(std::ios::floatfield); // floatfield not set
     output.precision(15);
-    output <<"eid, geometry, first vertex elevation, second vertex elevation"<<endl;
+    output <<"eid, geometry, first vertex elevation, second vertex elevation, ridge id"<<endl;
     int eid = 1;
    
     for (auto it = ridge_paths_edges.begin(); it != ridge_paths_edges.end(); it++)
     {
+        auto edge = it->first;
         output << eid++ << ", \"LINESTRING (";
-        output << it->first.get_x() << " " << it->first.get_y() <<", ";
-        output << it->second.get_x() << " " << it->second.get_y();
-        output << ")\", " << it->first.get_z()<<", "<< it->second.get_z() << endl;
+        output << edge.first.get_x() << " " << edge.first.get_y() <<", ";
+        output << edge.second.get_x() << " " << edge.second.get_y();
+        output << ")\", " << edge.first.get_z()<<", "<< edge.second.get_z();
+        output << ", " << it->second << endl;
     }
     output.close(); 
 }
@@ -792,7 +818,7 @@ void Writer_Morse::write_ridges_stats_CSV(vector<Ridge_Stats>& ridges_stats, str
 }
 
 
-void Writer_Morse::write_asc1cells_line_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh, vector<pair<Vertex, Vertex>>& ridge_paths_edges)
+void Writer_Morse::write_asc1cells_line_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh, vector<pair<pair<Vertex, Vertex>, int>>& ridge_paths_edges)
 {
     itype edge_number = ridge_paths_edges.size();
     map<Vertex, int> centroid_indexes;
@@ -801,15 +827,16 @@ void Writer_Morse::write_asc1cells_line_VTK(string mesh_name, string operation_t
     vector<pair<int, int>> edges_indexes;
     for (auto it = ridge_paths_edges.begin(); it != ridge_paths_edges.end(); ++it)
     {
-        if(centroid_indexes.find(it->first) == centroid_indexes.end()){
-            centroids.push_back(it->first);
-            centroid_indexes.insert(make_pair(it->first, vertex_number++));
+        auto edge = it->first;
+        if(centroid_indexes.find(edge.first) == centroid_indexes.end()){
+            centroids.push_back(edge.first);
+            centroid_indexes.insert(make_pair(edge.first, vertex_number++));
         }
-        if(centroid_indexes.find(it->second) == centroid_indexes.end()){
-            centroids.push_back(it->second);
-            centroid_indexes.insert(make_pair(it->second, vertex_number++));
+        if(centroid_indexes.find(edge.second) == centroid_indexes.end()){
+            centroids.push_back(edge.second);
+            centroid_indexes.insert(make_pair(edge.second, vertex_number++));
         }
-        edges_indexes.push_back(make_pair(centroid_indexes[it->first], centroid_indexes[it->second]));
+        edges_indexes.push_back(make_pair(centroid_indexes[edge.first], centroid_indexes[edge.second]));
     }
 
     stringstream stream;

@@ -149,10 +149,10 @@ simplices_multimap Sea_Ice_Processor::update_label()
     return output;
 }
 
-vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths, vector<Ridge_Stats>& ridges_stats, double level_sea_ice_elev)
+vector<pair<pair<Vertex, Vertex>, int>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths, vector<Ridge_Stats>& ridges_stats, double level_sea_ice_elev)
 {
-    set<pair<Vertex, Vertex>> edges;
-
+    set<pair<pair<Vertex, Vertex>, int>> edges;
+    
     for (auto maximum : valid_ridge_paths)
     {
         map<itype, itype> to_connect; // key is the saddle triangle index, value is the index of this path in the list
@@ -191,6 +191,7 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
         }
     }
     int roughness_fid = mesh.get_vertex(1).get_fields_num() - 2;
+    int ridge_id = 0;
     for (auto ridge_path_of_maximum : valid_ridge_paths)
     {
         Ridge_Stats ridge_stats;
@@ -198,6 +199,7 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
         Vertex maximum = get_max_elevation_vertex(ridge_path_of_maximum.first, mesh);
         ridge_stats.maximum = maximum;
         ridge_stats.peak_elevation = maximum.get_z() + level_sea_ice_elev;
+
         for (auto path : ridge_path_of_maximum.second)
         {
            // We don't check the roughness of the last tri in the path (the maximum) 
@@ -215,17 +217,25 @@ vector<pair<Vertex, Vertex>> Sea_Ice_Processor::get_ridge_paths_edges_new(Mesh &
                         break;
                     }
                 }
-                Vertex centroid_1 = get_centroid(t1_vec, mesh);
+                Vertex centroid_1; 
+                // for maxima, we use the highest vertex instead of centroid to represent
+                // so the peak matches with the highest point on the ridge.
+                if(i == path.size() - 1){
+                    centroid_1 = mesh.get_vertex(mesh.get_max_elevation_vertex(t1));
+                }else{
+                    centroid_1 = get_centroid(t1_vec, mesh);
+                }
                 Vertex centroid_2 = get_centroid(t2_vec, mesh);
-                auto edge = make_pair(centroid_1, centroid_2);
+                pair<pair<Vertex, Vertex>, int> edge = make_pair(make_pair(centroid_1, centroid_2), ridge_id);
                 edges.insert(edge);
                 length += centroid_1.distance(centroid_2);
             }
         }
         ridge_stats.length = length;
+        ridge_stats.ridge_id = ridge_id++;
         ridges_stats.push_back(ridge_stats);
     }
-    vector<pair<Vertex, Vertex>> edge_vector;
+    vector<pair<pair<Vertex, Vertex>, int>> edge_vector;
     edge_vector.insert(edge_vector.end(), edges.begin(), edges.end());
     return edge_vector;
 }

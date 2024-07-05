@@ -354,15 +354,15 @@ template<class T> void extract_features(T& tree, cli_parameters &cli,Forman_Grad
             auto updated_cells = processor.get_processed_triangles(tree.get_mesh());
             auto ridge_paths_edges = processor.get_ridge_paths_edges();
         
-            Writer_Morse::write_asc1cells_line_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
-                                              , tree.get_mesh(),ridge_paths_edges);
+            // Writer_Morse::write_asc1cells_line_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
+            //                                   , tree.get_mesh(),ridge_paths_edges);
             Writer_Morse::write_asc1cells_VTK(out.str(),"asc1cells", cli.v_per_leaf, updated_cells 
                                               , tree.get_mesh(), cli.original_triangle_indices,
                                               cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
             Writer_Morse::write_asc1cells_PLY(out.str(),"asc1cells", cli.v_per_leaf,
                                               updated_cells , tree.get_mesh(), cli.original_triangle_indices,
                                               cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);
-            Writer_Morse::write_asc1cells_paths_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf, ridge_paths_edges, tree.get_mesh());
+            // Writer_Morse::write_asc1cells_paths_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf, ridge_paths_edges, tree.get_mesh());
             // Writer_Morse::write_asc1cells_WKT_CSV(out.str(),"asc1cells", cli.v_per_leaf,
             //                                   updated_cells, tree.get_mesh(), cli.original_triangle_indices,
             //                                   cli.original_vertex_indices,cli.original_vertex_fields,cli.rever_to_original);

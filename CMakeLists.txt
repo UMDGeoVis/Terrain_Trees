@@ -15,12 +15,13 @@ set(LANGUAGE C++)
 set(CMAKE_BUILD_TYPE debug)
 
 #new:
-find_package (Eigen3 3.3 REQUIRED)
-include_directories(/opt/homebrew/opt/eigen/include/eigen3)
+include_directories(/home/songy/eigen)
 #end
 
 # Boost directory:
-include_directories(/opt/homebrew/opt/boost@1.81/include)
+set(Boost_INCLUDE_DIR /home/songy/usr/boost)
+set(Boost_LIBRARY_DIR /home/songy/usr/boost/stage/lib)
+include_directories(${Boost_INCLUDE_DIR})
 
 #~ find_package(Boost REQUIRED)
 #~ find_package(Doxygen REQUIRED)   
@@ -31,7 +32,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 #    set(CMAKE_EXE_LINKER_FLAGS "-s -lrt") ## Strip binary
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 #    set(CMAKE_CXX_FLAGS "-O3 -march=native -std=c++11 -I/sources/core_library/sources") ## Optimize
-    set(CMAKE_CXX_FLAGS "-O3 -march=native -std=c++11 -I /usr/include/eigen3/") ## Optimize
+    set(CMAKE_CXX_FLAGS "-O3 -march=native -std=c++11 -fopenmp -I /home/songy/eigen") ## Optimize
     set(CMAKE_EXE_LINKER_FLAGS "-s") ## Strip binary
 endif()
 
@@ -46,7 +47,7 @@ add_subdirectory(sources)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
 
 add_executable(terrain_trees sources/targets/main.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
-target_link_libraries(terrain_trees _terrain_trees_apps Eigen3::Eigen)
+target_link_libraries(terrain_trees _terrain_trees_apps)
 
 
 ### TEST THE LIBRARY
@@ -64,10 +65,10 @@ add_executable(test_roughness EXCLUDE_FROM_ALL sources/tests/test_roughness.cpp 
 target_link_libraries(test_roughness _terrain_trees_apps)
 
 add_executable(test_gradient EXCLUDE_FROM_ALL sources/tests/test_gradient.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
-target_link_libraries(test_gradient _terrain_trees_apps Eigen3::Eigen)
+target_link_libraries(test_gradient _terrain_trees_apps)
 
 add_executable(test_all_operations EXCLUDE_FROM_ALL sources/tests/test_all_operations.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
-target_link_libraries(test_all_operations _terrain_trees_apps Eigen3::Eigen)
+target_link_libraries(test_all_operations _terrain_trees_apps)
 
 add_executable(test_soup EXCLUDE_FROM_ALL sources/tests/test_soup.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_soup _terrain_trees_apps)
@@ -94,8 +95,15 @@ target_link_libraries(test_morse_simplification _terrain_trees_apps)
 add_executable(test_roughness_range EXCLUDE_FROM_ALL sources/tests/test_roughness_range.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
 target_link_libraries(test_roughness_range _terrain_trees_apps)
 
+
+add_executable(test_point_interpolation EXCLUDE_FROM_ALL sources/tests/test_point_interpolation.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
+target_link_libraries(test_point_interpolation _terrain_trees_apps)
+
+add_executable(test_ridge_extraction EXCLUDE_FROM_ALL sources/tests/test_ridge_extraction.cpp sources/utilities/utility_functions.h sources/utilities/utility_functions.cpp)
+target_link_libraries(test_ridge_extraction _terrain_trees_apps)
+
 add_custom_target(tests DEPENDS test_index_generation test_curvature test_soup test_batched_queries test_terrain_feature_extraction test_gradient test_all_operations test_roughness test_soup test_batched_queries test_terrain_feature_extraction test_spatial_queries test_index_and_VT  test_morse test_morse_simplification test_multivariate_morse)
 
-add_custom_target(sea_ice DEPENDS test_roughness_range test_morse_simplification)
+add_custom_target(sea_ice DEPENDS test_roughness_range test_morse_simplification test_point_interpolation test_ridge_extraction)
 
 

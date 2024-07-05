@@ -14,7 +14,6 @@ void Roughness_circle::compute(Node_V& root, Mesh& mesh, const coord_type radius
         // first field is the roughness, second field is the count of vertices in that range
         mesh.get_vertex(i).add_field(calc_roughness(elevations));
         mesh.get_vertex(i).add_field(elevations.size());
-    
     }
 
     this->print_roughness_stats(mesh, mesh.get_vertex(1).get_fields_num() - 1);
@@ -68,7 +67,9 @@ coord_type Roughness_circle::calc_roughness(vector<coord_type>& elevations)
 {
     coord_type zDistSum = 0;
     coord_type zSum=0;
-
+    if(elevations.size() == 1){
+        return 0;
+    }
     for(auto z:elevations)
     { 
         zSum += z;
@@ -83,7 +84,7 @@ coord_type Roughness_circle::calc_roughness(vector<coord_type>& elevations)
                 
     }
     
-    coord_type roughness=sqrt(zDistSum/(elevations.size()));
+    coord_type roughness=sqrt(zDistSum/(elevations.size() - 1));
     return roughness;
 }
 

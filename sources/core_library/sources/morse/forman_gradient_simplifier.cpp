@@ -312,7 +312,10 @@ void Forman_Gradient_Simplifier::simplify(const ivect &critical_edge, Topo_Sempl
             if(other_maximum.get_z() < 0.6 || other_maximum.get_z() <  maximum.get_z()){
                 return;
             }
-            if(other_maximum.get_z() < 2 * abs(other_maximum.get_z() - saddle_vertex.get_z())){
+            // if(other_maximum.get_z() < 2 * abs(other_maximum.get_z() - saddle_vertex.get_z())){
+            //     return;
+            // }
+            if(other_maximum.get_z() > 2 * saddle_vertex.get_z()){
                 return;
             }
             if(extrema->size() == 1){

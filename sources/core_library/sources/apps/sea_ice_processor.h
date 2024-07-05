@@ -8,6 +8,7 @@ struct Ridge_Stats
     double peak_elevation;
     double length;
     Vertex maximum;
+    int ridge_id;
 };
 
 class Sea_Ice_Processor
@@ -31,7 +32,7 @@ public:
         this->roughness_filter = flag;
         this->roughness_limit = threshold;
     }
-    vector<pair<Vertex, Vertex>> get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths, vector<Ridge_Stats>& ridges_stats, double level_sea_ice_elev);
+    vector<pair<pair<Vertex, Vertex>, int>> get_ridge_paths_edges_new(Mesh &mesh, map<itype, vector<ivect>> &valid_ridge_paths, vector<Ridge_Stats>& ridges_stats, double level_sea_ice_elev);
 
 private:
     void add_triangle_to_simplex(const ivect &triangle, itype simplex);
@@ -85,12 +86,40 @@ private:
         Vertex p;
         for (int i = 0; i < 3; i++)
             p.set_c(i, (vi.get_c(i) + vj.get_c(i) + vk.get_c(i)) / 3.0);
+
+        // cout << triangle[0] << " " << triangle[1] << " "<< triangle[2]<<endl;
+        // cout <<vi<<endl;
+        // cout <<vj<<endl;
+        // cout <<vk<<endl;
+        // cout <<"average (vect ver): ";
+        // cout << p <<endl;
         return p;
     }
-    inline Vertex& get_max_elevation_vertex(itype tid, Mesh &mesh)
+    inline Vertex get_centroid(itype tid, Mesh &mesh)
     {
         Triangle t = mesh.get_triangle(tid);
-        Vertex& max = mesh.get_vertex(t.TV(0));
+        Vertex &vi = mesh.get_vertex(t.TV(0));
+        Vertex &vj = mesh.get_vertex(t.TV(1));
+        Vertex &vk = mesh.get_vertex(t.TV(2));
+        Vertex p;
+        for (int i = 0; i < 3; i++)
+        {
+            p.set_c(i, (vi.get_c(i) + vj.get_c(i) + vk.get_c(i)) / 3.0);
+        }
+
+        // cout << t.TV(0) << " " << t.TV(1) << " "<< t.TV(2)<<endl;
+        // cout <<vi<<endl;
+        // cout <<vj<<endl;
+        // cout <<vk<<endl;
+        // cout <<"average: ";
+        // cout << p <<endl;
+        return p;
+    }
+
+    inline Vertex get_max_elevation_vertex(itype tid, Mesh &mesh)
+    {
+        Triangle t = mesh.get_triangle(tid);
+        Vertex max = mesh.get_vertex(t.TV(0));
         coord_type max_elev = max.get_z();
         for (itype v = 1; v < t.vertices_num(); v++)
         {

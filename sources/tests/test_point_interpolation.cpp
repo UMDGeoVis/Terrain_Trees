@@ -132,7 +132,7 @@ template<class T> void compute_interpolated_elevations(T& tree, cli_parameters &
 {
     stringstream out;
     out << get_path_without_file_extension(cli.mesh_path);
-    out << "_icesat2_";
+    out << "_oib_icesat2_";
     vector<Point> query_points;
     Reader::read_queries(query_points, point_file_path);
     std::cout <<"Read input point list: " << query_points.size() << " query points in total"<<endl;

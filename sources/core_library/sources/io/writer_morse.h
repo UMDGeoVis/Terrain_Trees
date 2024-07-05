@@ -42,7 +42,7 @@ public:
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_desc1cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &edges, Mesh &mesh,
                                      ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
-    static void write_asc1cells_line_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh, vector<pair<Vertex, Vertex>>& ridge_paths_edges); 
+    static void write_asc1cells_line_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh, vector<pair<pair<Vertex, Vertex>, int>>& ridge_paths_edges); 
     static void write_asc2cells_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, ivect &segmentation, Mesh &mesh,
                                     ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_incidence_graph_VTK(string mesh_name, string operation_type, itype vertices_per_leaf, IG &forman_ig, Mesh &mesh,
@@ -59,7 +59,7 @@ public:
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
-    static void write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, vector<pair<Vertex, Vertex>>& ridge_paths_edges, Mesh &mesh);
+    static void write_asc1cells_paths_WKT_CSV(string mesh_name, string operation_type, itype vertices_per_leaf, vector<pair<pair<Vertex, Vertex>, int>>& ridge_paths_edges, Mesh &mesh);
     static void write_asc1cells_PLY(string mesh_name, string operation_type, itype vertices_per_leaf, simplices_multimap &triangles, Mesh &mesh,
                                      ivect &original_triangle_indices, ivect &original_vertex_indices, dvect &original_vertex_fields, bool revert_to_original_field);
     static void write_critical_points_txt(string mesh_name, string operation_type, itype vertices_per_leaf, IG &forman_ig, Mesh &mesh,
