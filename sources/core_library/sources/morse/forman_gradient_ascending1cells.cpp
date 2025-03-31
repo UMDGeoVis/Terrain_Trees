@@ -138,7 +138,8 @@ void Forman_Gradient_Features_Extractor::get_new_ascending_1cells(Node_V &n, Mes
         {
             ivect f_vec;
             t_first.convert_to_vec(f_vec);
-            triangles_2celle.insert(make_pair(f_vec, it_f->second.first));
+            triangles_2celle[f_vec].push_back(it_f->second.first);
+            // triangles_2celle.insert(make_pair(f_vec, it_f->second.first));
         }
 
         pair<itype,short> coppia = make_pair(it_f->second.first,f_pos_first);
@@ -199,7 +200,8 @@ void Forman_Gradient_Features_Extractor::get_one_ascending_1cells(Node_V &n, con
                     {
                         ivect f_vec;
                         t.convert_to_vec(f_vec);
-                        triangles_2celle.insert(make_pair(f_vec, label));
+                        triangles_2celle[f_vec].push_back(label);
+                        // triangles_2celle.insert(make_pair(f_vec, label));
                     }
 
                     t.TE(f1,e);
@@ -216,7 +218,8 @@ void Forman_Gradient_Features_Extractor::get_one_ascending_1cells(Node_V &n, con
                 {
                     ivect f_vec;
                     t.convert_to_vec(f_vec);
-                    triangles_2celle.insert(make_pair(f_vec, label));
+                    triangles_2celle[f_vec].push_back(label);
+                    // triangles_2celle.insert(make_pair(f_vec, label));
                 }
             }
         }

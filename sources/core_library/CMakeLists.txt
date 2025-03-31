@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 project(Terrain_Trees_core)
 set(terrain_trees_VERSION_MAJOR 1)
@@ -15,7 +15,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib )
 set(CMAKE_BUILD_TYPE Release)
 
 find_package(Boost REQUIRED)
-find_package(Doxygen REQUIRED)
+# find_package(Doxygen REQUIRED)
 
 #if(CMAKE_COMPILER_IS_GNUCXX) #do not work on mac
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -29,5 +29,5 @@ endif()
 include_directories(sources)
 add_subdirectory(sources)
 
-target_include_directories(_terrain_trees_core PUBLIC ${PROJECT_BINARY_DIR}/sources/)
-target_include_directories(_terrain_trees_apps PUBLIC ${PROJECT_BINARY_DIR}/sources/)
+target_include_directories(_terrain_trees_core PUBLIC ${PROJECT_SOURCE_DIR}/sources/)
+target_include_directories(_terrain_trees_apps PUBLIC ${PROJECT_SOURCE_DIR}/sources/)

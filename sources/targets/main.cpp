@@ -532,7 +532,7 @@ template<class T> void morse_features_extraction_and_simplification(T& tree, cli
             cout<<"[GLOBALLY] Simplify the forman gradient vector."<<endl;
             /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
             /// default behaviour with alltime!
-            forman_simplifier.exec_global_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
+            forman_simplifier.exec_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
                                                                      cli.app_debug,cli.cache_size,cli.persistence);
         }
 
@@ -883,10 +883,11 @@ template<class T> void morse_analysis(T& tree, cli_parameters &cli){
     time.stop();
     time.print_elapsed_time("[TIME] Initial filtering ");
 
-    load_tree_lite(tree,cli);
-
     //WARNING AFTER THIS THE FILTRATION ARRAY IN forman_gradient AND THE POSITION INDICES OF THE VERTICES OF THE TIN WILL NOT BE ALIGNED..
     // YOU HAVE TO USE original_vertex_indices FOR FETCHING THE CORRECT FILTRATION VALUE OF A VERTEX
+    load_tree_lite(tree,cli);
+
+    // Reset the filtration to the index after reindexing.
     gradient_computation.reset_filtering(tree.get_mesh(),cli.original_vertex_indices);
 
     cout<<"[NOTA] Computing the gradient field"<<endl;

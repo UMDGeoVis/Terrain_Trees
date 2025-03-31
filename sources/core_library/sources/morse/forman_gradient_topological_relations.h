@@ -51,6 +51,7 @@ public:
     static void get_VTstar_VV(asc2rels &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient);
 
     static itype get_triangle_id(ivect max_tri, VT &vt, Mesh &mesh);
+    static void get_VTstar_ET(local_VTstar_ET &all_rels, Node_V &n, Mesh& mesh, Forman_Gradient &gradient, mig_cache& cache);
 
 private:
     Forman_Gradient_Topological_Relations() {}

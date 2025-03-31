@@ -69,7 +69,8 @@ unsigned int popcount(T v)
 }
 }
 
-//typedef unsigned int uint;
+typedef unsigned int uint;
+typedef unsigned short ushort;
 #define CASES 512
 #define OUTSIDECASES 1000
 
@@ -203,7 +204,7 @@ typedef set<quadruple> set_asc_quadruple;
 typedef map<utype,set_asc_quadruple> leaves_1_asc_mig_map;
 
 typedef map<ivect, itype> simplices_map;
-
+typedef map<ivect, ivect> simplices_multimap;
 /// used by MIG -- start -- ///
 typedef set<desc1_mig_quadruple> set_1paths;
 typedef map<utype,set_1paths> leaves_1_desc_mig_map;
@@ -266,6 +267,8 @@ public:
     inline leaf_ET::iterator find_ET(ivect &e) { return ets.find(e); }
     inline leaf_ET::iterator begin_ETs() { return ets.begin(); }
     inline leaf_ET::iterator end_ETs() { return ets.end(); }
+    inline void set_ETs(leaf_ET &new_ets) { ets = new_ets; }
+    inline void set_VTstars(leaf_VTstar &new_vtstars) { vtstars = new_vtstars; }
 };
 
 namespace forman_aux_structures {

@@ -117,7 +117,14 @@ void Forman_Gradient_Features_Extractor::get_new_ascending_2cells(Node_V &n, Mes
     for(itype v_id=n.get_v_start(); v_id<n.get_v_end(); v_id++)
     {
         itype v_pos = v_id - n.get_v_start();
-        if(gradient.is_vertex_critical(v_id,all_rels.get_vtstar(v_pos),mesh))
+        itype vtstar = all_rels.get_vtstar(v_pos);
+        if(vtstar == -1){
+            // This will lead to error in is_vertex_critical function if not handled. 
+            // In other cases, the list of triangles or vv relations are traversed so the vertex must be connected. 
+            cout << "Vertex " << v_id <<" is not in any triangle of the mesh." <<endl;
+            continue; 
+        }
+        if(gradient.is_vertex_critical(v_id, vtstar, mesh))
         {
             found_min++;
             if(operation == OUTPUT)
@@ -144,7 +151,9 @@ void Forman_Gradient_Features_Extractor::get_dangling_ascending_2cells(Node_V &n
         {
             itype vtstar = Forman_Gradient_Topological_Relations::get_VTstar(n,it_e->first.first,all_rels.vtstars,
                                                                                cache.get_vtstar_cache(),root,division,mesh,gradient);
-
+            if(vtstar  == -1){
+                cout << "Error getting vtstar when processing dangling cells." << endl;
+            }
             if(!gradient.is_vertex_critical(it_e->first.first,vtstar,mesh)) //*it is paired
             {
                 Triangle &t = mesh.get_triangle(vtstar);
@@ -187,7 +196,9 @@ void Forman_Gradient_Features_Extractor::get_one_ascending_2cells(Node_V &n, ity
             if(n.visited_vertex(vv_vert))
             {
                 itype vtstar = Forman_Gradient_Topological_Relations::get_VTstar(n,vv_vert,all_rels.vtstars,cache.get_vtstar_cache(),root,division,mesh,gradient);
-
+                if(vtstar == -1){
+                    cout << "Error when checking vtstar of vv_vert" << endl;
+                }
                 if(!gradient.is_vertex_critical(vv_vert,vtstar,mesh)) //*it is paired
                 {
                     Triangle &t = mesh.get_triangle(vtstar);

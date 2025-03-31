@@ -242,10 +242,23 @@ public:
     inline Arc* already_connected(nNode* extrema, iNode* saddle)
     {
         for(set<Arc*>::const_iterator it=extrema->begin(); it!=extrema->end(); ++it)
+        {
+                // cout << (*it)->getNode_i()<<endl;
+                // cout << *(*it)->getNode_i()<<endl;
+                // cout << (*it)->getNode_j()<<endl;
+                // cout << *(*it)->getNode_j()<<endl;
+                // cout << extrema<<endl;
+                // cout << *extrema <<endl;
+                // cout << *(*it) <<endl;
             if((((*it)->getNode_i() == extrema && (*it)->getNode_j() == saddle) ||
                ((*it)->getNode_j() == extrema && (*it)->getNode_i() == saddle))
-                    && (*it)->getLabel() > 0 )
-                return *it;
+                    && (*it)->getLabel() > 0 ){
+                        return *it;
+                    }
+
+
+        }
+
 
         return NULL;
     }
@@ -335,21 +348,21 @@ public:
 class Topo_Sempl
 {
 
-public:
-    Arc* arc;
-    coord_type val;
-    int filt_s0,filt_s1;
-    ivect filt_ex;
-    int lvl;
+    public:
+        Arc* arc;
+        coord_type val;
+        int filt_s0, filt_s1;
+        ivect filt_ex;
+        int lvl;
 
-    Topo_Sempl() { arc = NULL; val = -1; lvl = -1;filt_s0=filt_s1=-1;filt_ex=ivect(); }
-    Topo_Sempl(Arc* arc, coord_type val, int lvl,int filt_s0,int filt_s1,ivect filt_ex){ this->arc = arc; this->val=val; this->lvl=lvl;this->filt_s0=filt_s0;this->filt_s1=filt_s1;this->filt_ex=filt_ex;}
+        Topo_Sempl() { arc = NULL; val = -1; lvl = -1;filt_s0=filt_s1=-1;filt_ex=ivect(); }
+        Topo_Sempl(Arc* arc, coord_type val, int lvl,int filt_s0,int filt_s1,ivect filt_ex){ this->arc = arc; this->val=val; this->lvl=lvl;this->filt_s0=filt_s0;this->filt_s1=filt_s1;this->filt_ex=filt_ex;}
 
-    inline friend std::ostream& operator<< (std::ostream &out, Topo_Sempl &q)
-    {
-        out << "A("<<*q.arc<< ") V["<<q.val<<"] lvl["<<q.lvl<<"]";
-        return out;
-    }
+        inline friend std::ostream& operator<< (std::ostream &out, Topo_Sempl &q)
+        {
+            out << "A("<<*q.arc<< ") V["<<q.val<<"] lvl["<<q.lvl<<"]";
+            return out;
+        }
 };
 
 struct sort_arcs_topo{
@@ -384,5 +397,15 @@ struct sort_arcs_topo{
 
     }
 };
+
+struct sort_arcs_topo_second_round{
+    bool operator()(Topo_Sempl &s1, Topo_Sempl &s2)
+    {   
+        if(s1.val!=s2.val)
+           return s1.val < s2.val;
+        return s1.filt_ex.front() < s2.filt_ex.front();
+    }
+};
+
 
 #endif // IG_H

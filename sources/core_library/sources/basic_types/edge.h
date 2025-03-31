@@ -33,6 +33,7 @@
  * @brief The Edge class defines a representation for an edge in the triangle mesh
  * NOTA: an edge is represented with a pair of positive integers
  */
+using namespace std;
 class Edge
 {
 public:

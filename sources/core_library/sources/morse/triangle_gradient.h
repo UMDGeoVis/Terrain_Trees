@@ -185,7 +185,7 @@ public:
         case 0:			return ! testArrow( CONTAINS_V0 );
         case 1:			return ! testArrow( CONTAINS_V1 );
         case 2:			return ! testArrow( CONTAINS_V2 );
-        default: 		cerr << "ERROR, DEFAULT vunp" << endl; 	return false;
+        default: 		cerr << "ERROR, DEFAULT vunp. index not found: "<< index <<  endl; 	return false;
         }
     }
 
