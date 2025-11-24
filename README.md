@@ -69,6 +69,20 @@ This command generates a portable library file, located into *lib* folder, as we
 
 The compilation process has been test on linux and mac systems.
 
+### Execute sea ice ridge extraction code ###
+To compile the binaries for ridge extraction, run from command line the following command
+```
+make sea_ice
+```
+Once compiled, run the binary in bin through
+```
+./bin/test_ridge_extraction [data path] [vertex per node] [persistence threshold] [level sea ice elevation] [minimum ridge line length] -r [roughness threshold]
+```
+Example
+```
+./bin/test_ridge_extraction leg6_projected_ridges_region_part1.off 20 0.5 -0.31 0 -r 0.08
+```
+
 ### Execute unit tests ###
 
 To compile the unit-tests run from command line the following command
