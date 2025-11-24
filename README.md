@@ -82,7 +82,13 @@ Example
 ```
 ./bin/test_ridge_extraction leg6_projected_ridges_region_part1.off 20 0.5 -0.31 0 -r 0.08
 ```
-
+By default, it outputs below files:
+1. [mesh name + options]_orig_critical_points.txt: critical points in the original topology before the simplification
+2. [mesh name + options]_after_r1_critical_points.txt: critical points after the first round of topological simplification
+3. [mesh name + options]_simplified_critical_points.txt: critical points after the second round of topological simplification (final ridegs).
+4. [mesh name + options]_asc1cells_filtered_lines.vtk: lines representing the ascending 1 cells (ridge path) in VTK format
+5. [mesh name + options]_asc1cells_filtered_ridge_lines_wkt.csv: lines representing the ridge lines in WKT CSV format. Can be loaded by QGIS-Add Layer-Add Delimited Text Layer.
+6. [mesh name + options]_ridges.csv: ridge stats of extracted ridges including peak location, elevation and length. In CSV format
 ### Execute unit tests ###
 
 To compile the unit-tests run from command line the following command
