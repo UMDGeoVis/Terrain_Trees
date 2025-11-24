@@ -15,15 +15,15 @@ set(LANGUAGE C++)
 set(CMAKE_BUILD_TYPE debug)
 
 #new:
-include_directories(/home/songy/eigen)
+find_package (Eigen3 3.3 REQUIRED)
+include_directories(/opt/homebrew/opt/eigen/include/eigen3)
 #end
 
 # Boost directory:
-set(Boost_INCLUDE_DIR /home/songy/usr/boost)
-set(Boost_LIBRARY_DIR /home/songy/usr/boost/stage/lib)
-include_directories(${Boost_INCLUDE_DIR})
+include_directories(/opt/homebrew/opt/boost@1.81/include)
+# include_directories(${Boost_INCLUDE_DIR})
 
-#~ find_package(Boost REQUIRED)
+# find_package(Boost REQUIRED)
 #~ find_package(Doxygen REQUIRED)   
 
 #if(CMAKE_COMPILER_IS_GNUCXX) #do not work on mac

@@ -41,8 +41,8 @@ public:
     }
 
     //function used to topologically simplify the model
-    void exec_local_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division,
-                                               OpType operation, int cache_size, coord_type persistence);
+    // void exec_local_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division,
+    //                                            OpType operation, int cache_size, coord_type persistence);
     coord_type get_average_persistence_value(IG &ig, Mesh &mesh);
 
     // void exec_global_topological_simplification(Node_V &n, Mesh &mesh, Forman_Gradient &gradient, Spatial_Subdivision &division,

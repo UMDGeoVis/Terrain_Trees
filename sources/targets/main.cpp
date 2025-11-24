@@ -520,11 +520,13 @@ template<class T> void morse_features_extraction_and_simplification(T& tree, cli
         if(cli.query_type == LOCAL_MORSE_SIMPLIFICATION) /// we have chosen a fully local simplification. i.e. the MIG is computed locally
         {
             //cli.persistence = 0.8;
-            cout<<"[LOCALLY] Simplify the forman gradient vector."<<endl;
-            time.start();
-            forman_simplifier.exec_local_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
-                                                                    cli.app_debug,cli.cache_size,cli.persistence);
-            time.stop();
+
+            cerr<<"DEPRECATED. Please only use the global simplifier."<<endl;
+            // cout<<"[LOCALLY] Simplify the forman gradient vector."<<endl;
+            // time.start();
+            // forman_simplifier.exec_local_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
+            //                                                         cli.app_debug,cli.cache_size,cli.persistence);
+            // time.stop();
             time.print_elapsed_time("[TIME] simplify the gradient ");
         }
         else if(cli.query_type == GLOBAL_MORSE_SIMPLIFICATION)
@@ -533,7 +535,7 @@ template<class T> void morse_features_extraction_and_simplification(T& tree, cli
             /// otherwise we simplify the gradient computing first a global MIG and then simplifying it and the gradient
             /// default behaviour with alltime!
             forman_simplifier.exec_topological_simplification(tree.get_root(),tree.get_mesh(),forman_gradient,tree.get_subdivision(),
-                                                                     cli.app_debug,cli.cache_size,cli.persistence);
+                                                                     cli.cache_size,cli.persistence);
         }
 
         forman_simplifier.print_simplification_stats();
